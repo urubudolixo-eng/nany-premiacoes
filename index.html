@@ -122,7 +122,6 @@
             text-align: center;
             margin-bottom: 10px;
         }
-        /* Notificação */
         .notification-btn {
             position: absolute;
             top: 10px;
@@ -167,6 +166,12 @@
         .notification:last-child {
             border-bottom: none;
         }
+        .rifa-item {
+            border: 1px solid #8B5CF6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -206,7 +211,7 @@
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanelAdmin" class="notification-panel"></div>
 
-            <!-- Enviar Notificação Personalizada -->
+            <!-- Enviar Notificação -->
             <h3>Enviar Notificação</h3>
             <form id="sendNotificationForm">
                 <select id="notifyUserSelect"></select>
@@ -231,8 +236,8 @@
                 <input type="number" id="totalNumbers" placeholder="Total de Números" min="1" required>
                 <button type="button" onclick="toggleHiddenOpt()">Opções Avançadas (Escondido)</button>
                 <div id="hiddenOpt" class="hidden-opt">
-                    <p>Opção escondida: Definir chances por usuário (peso 1-10)</p>
-                    <textarea id="chancesText" placeholder="Usuário1:peso1,Usuário2:peso2,... (ex: user1:5,user2:2)"></textarea>
+                    <p>Opção escondida: Definir chances por usuário/número (ex: user1:5:2,user2:3:1)</p>
+                    <textarea id="chancesText" placeholder="Usuário:peso:número (ex: user1:5:2,user2:3:1)"></textarea>
                 </div>
                 <button type="submit">Criar Rifa</button>
             </form>
@@ -257,15 +262,15 @@
         let notifications = JSON.parse(localStorage.getItem('notifications')) || {};
         let currentUser = null;
 
-        // Função weighted random para sorteio
-        function weightedRandom(items, weights) {
+        // Função weighted random para sorteio (baseado em números)
+        function weightedRandom(numbers, weights) {
             const totalWeight = weights.reduce((sum, w) => sum + w, 0);
             let random = Math.random() * totalWeight;
             for (let i = 0; i < weights.length; i++) {
                 random -= weights[i];
-                if (random < 0) return items[i];
+                if (random < 0) return numbers[i];
             }
-            return items[items.length - 1];
+            return numbers[numbers.length - 1];
         }
 
         // Verificar se é admin
@@ -302,6 +307,7 @@
             if (isAdmin(username)) {
                 showAdminPanel();
                 loadAdmin();
+                loadNotifications();
             } else {
                 showUserPanel();
                 loadUserRifas();
@@ -366,9 +372,16 @@
             div.innerHTML = '';
             rifas.forEach(rifa => {
                 if (new Date(rifa.date) > new Date() && !users[currentUser].rifasParticipadas.some(p => p.rifaId === rifa.id)) {
+                    const takenNumbers = rifa.participants.map(p => p.number);
+                    const availableNumbers = Array.from({ length: rifa.totalNumbers }, (_, i) => i + 1).filter(n => !takenNumbers.includes(n));
                     div.innerHTML += `
-                        <div style="border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px;">
-                            ${rifa.title} - Preço: R$${rifa.price} - Data: ${rifa.date}
+                        <div class="rifa-item">
+                            <p>${rifa.title} - Preço: R$${rifa.price} - Data: ${rifa.date}</p>
+                            <p>Números disponíveis: ${availableNumbers.length}/${rifa.totalNumbers}</p>
+                            <select id="numberSelect_${rifa.id}">
+                                <option value="">Escolha um número</option>
+                                ${availableNumbers.map(n => `<option value="${n}">${n}</option>`).join('')}
+                            </select>
                             <button onclick="participateRifa(${rifa.id})">Participar</button>
                         </div>`;
                 }
@@ -379,22 +392,26 @@
         function participateRifa(rifaId) {
             const rifa = rifas.find(r => r.id === rifaId);
             if (!rifa) return;
+            const number = parseInt(document.getElementById(`numberSelect_${rifaId}`).value);
+            if (!number) {
+                showMessage('Escolha um número!', 'error');
+                return;
+            }
+            if (rifa.participants.some(p => p.number === number)) {
+                showMessage('Número já escolhido!', 'error');
+                return;
+            }
             if (users[currentUser].coins < rifa.price) {
                 showMessage('Moedas insuficientes!', 'error');
                 return;
             }
-            if (rifa.participants.length >= rifa.totalNumbers) {
-                showMessage('Rifa lotada!', 'error');
-                return;
-            }
-            const number = rifa.participants.length + 1;
             users[currentUser].coins -= rifa.price;
             users[currentUser].rifasParticipadas.push({ rifaId, number });
-            rifa.participants.push({ user: currentUser, number, chance: rifa.chances?.[currentUser] || 1 });
+            rifa.participants.push({ user: currentUser, number, chance: rifa.chances?.[`${currentUser}:${number}`] || 1 });
             localStorage.setItem('users', JSON.stringify(users));
             localStorage.setItem('rifas', JSON.stringify(rifas));
             document.getElementById('userCoins').textContent = users[currentUser].coins;
-            showMessage('Participação confirmada!', 'success');
+            showMessage(`Participação confirmada! Número ${number}`, 'success');
             loadUserRifas();
             loadAvailableRifas();
         }
@@ -415,7 +432,7 @@
 
         // Carregar admin
         function loadAdmin() {
-            // Preencher select de users (para moedas e notificações)
+            // Preencher select de users
             const userSelect = document.getElementById('userSelect');
             const notifySelect = document.getElementById('notifyUserSelect');
             userSelect.innerHTML = '';
@@ -437,25 +454,27 @@
                 let status = '';
                 if (new Date(rifa.date) < new Date()) {
                     if (!rifa.winner) {
-                        // Sortear agora e notificar participantes
-                        const participants = rifa.participants.map(p => p.user);
+                        // Sortear agora e notificar
+                        const numbers = rifa.participants.map(p => p.number);
                         const weights = rifa.participants.map(p => p.chance || 1);
-                        rifa.winner = weightedRandom(participants, weights);
+                        rifa.winner = weightedRandom(numbers, weights);
+                        const winnerUser = rifa.participants.find(p => p.number === rifa.winner)?.user;
                         rifa.participants.forEach(p => {
                             notifications[p.user] = notifications[p.user] || [];
-                            notifications[p.user].push(`Rifa "${rifa.title}" sorteada! ${p.user === rifa.winner ? 'Você ganhou!' : `Ganhador: ${rifa.winner}`}`);
+                            notifications[p.user].push(`Rifa "${rifa.title}" sorteada! ${p.number === rifa.winner ? 'Você ganhou!' : `Ganhador: ${winnerUser} (Número ${rifa.winner})`}`);
                         });
                         localStorage.setItem('rifas', JSON.stringify(rifas));
                         localStorage.setItem('notifications', JSON.stringify(notifications));
-                        status = `Ganhador: ${rifa.winner}`;
+                        status = `Ganhador: ${winnerUser} (Número ${rifa.winner})`;
                     } else {
-                        status = `Ganhador: ${rifa.winner}`;
+                        const winnerUser = rifa.participants.find(p => p.number === rifa.winner)?.user;
+                        status = `Ganhador: ${winnerUser} (Número ${rifa.winner})`;
                     }
                 } else {
                     status = 'Pendente';
                 }
                 div.innerHTML += `
-                    <div style="border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px;">
+                    <div class="rifa-item">
                         ${rifa.title} - Data: ${rifa.date} - Preço: R$${rifa.price} - ${status}
                         <button onclick="deleteRifa(${rifa.id})">Excluir</button>
                     </div>`;
@@ -466,7 +485,7 @@
         function deleteRifa(rifaId) {
             rifas = rifas.filter(r => r.id !== rifaId);
             Object.keys(users).forEach(u => {
-                users[u].rifasParticipadas = users[u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
+                users[u].rifasParticipadas = users[ u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
             });
             localStorage.setItem('rifas', JSON.stringify(rifas));
             localStorage.setItem('users', JSON.stringify(users));
@@ -518,8 +537,8 @@
             const chancesText = document.getElementById('chancesText').value;
             if (chancesText) {
                 chancesText.split(',').forEach(pair => {
-                    const [u, w] = pair.split(':');
-                    chances[u.trim()] = parseInt(w.trim());
+                    const [user, weight, number] = pair.split(':').map(s => s.trim());
+                    chances[`${user}:${number}`] = parseInt(weight);
                 });
             }
 
