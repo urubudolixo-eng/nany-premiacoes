@@ -370,7 +370,7 @@
                         <div class="rifa-item">
                             <p>${rifa.title} - Preço: R$${rifa.price} - Data: ${rifa.date}</p>
                             <p>Números disponíveis: ${availableNumbers.length}/${rifa.totalNumbers}</p>
-                            <button onclick="toggleRifaDetails(${rifa.id})">Entrar</button>
+                            <button onclick="toggleRifaDetails(${rifa.id})">Selecionar Rifa</button>
                             <div id="rifaDetails_${rifa.id}" class="rifa-details">
                                 <select id="numberSelect_${rifa.id}">
                                     <option value="">Escolha um número</option>
@@ -403,7 +403,7 @@
                 return;
             }
             if (users[currentUser].coins < rifa.price) {
-                showMessage('Moedas insuficientes!', 'error');
+                showMessage('Moedas insuficientes! Faça um PIX para +55 75 98868-8483.', 'error');
                 return;
             }
             users[currentUser].coins -= rifa.price;
