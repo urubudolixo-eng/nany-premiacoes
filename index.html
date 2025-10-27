@@ -82,20 +82,18 @@
             from { transform: translateX(-100%); }
             to { transform: translateX(0); }
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th, td {
+        .rifa-item {
+            border: 1px solid #8B5CF6;
             padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            margin: 10px 0;
+            border-radius: 8px;
         }
-        th {
-            background: rgba(139, 92, 246, 0.2);
+        .rifa-details {
+            display: none;
+            margin-top: 10px;
+        }
+        .rifa-details.active {
+            display: block;
         }
         .contact {
             text-align: center;
@@ -165,12 +163,6 @@
         }
         .notification:last-child {
             border-bottom: none;
-        }
-        .rifa-item {
-            border: 1px solid #8B5CF6;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 8px;
         }
     </style>
 </head>
@@ -378,14 +370,23 @@
                         <div class="rifa-item">
                             <p>${rifa.title} - Preço: R$${rifa.price} - Data: ${rifa.date}</p>
                             <p>Números disponíveis: ${availableNumbers.length}/${rifa.totalNumbers}</p>
-                            <select id="numberSelect_${rifa.id}">
-                                <option value="">Escolha um número</option>
-                                ${availableNumbers.map(n => `<option value="${n}">${n}</option>`).join('')}
-                            </select>
-                            <button onclick="participateRifa(${rifa.id})">Participar</button>
+                            <button onclick="toggleRifaDetails(${rifa.id})">Entrar</button>
+                            <div id="rifaDetails_${rifa.id}" class="rifa-details">
+                                <select id="numberSelect_${rifa.id}">
+                                    <option value="">Escolha um número</option>
+                                    ${availableNumbers.map(n => `<option value="${n}">${n}</option>`).join('')}
+                                </select>
+                                <button onclick="participateRifa(${rifa.id})">Confirmar Participação</button>
+                            </div>
                         </div>`;
                 }
             });
+        }
+
+        // Toggle detalhes da rifa
+        function toggleRifaDetails(rifaId) {
+            const details = document.getElementById(`rifaDetails_${rifaId}`);
+            details.classList.toggle('active');
         }
 
         // Participar de rifa
@@ -485,7 +486,7 @@
         function deleteRifa(rifaId) {
             rifas = rifas.filter(r => r.id !== rifaId);
             Object.keys(users).forEach(u => {
-                users[u].rifasParticipadas = users[ u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
+                users[u].rifasParticipadas = users[u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
             });
             localStorage.setItem('rifas', JSON.stringify(rifas));
             localStorage.setItem('users', JSON.stringify(users));
