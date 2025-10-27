@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nany Premiações - Criação de Rifas</title>
     <style>
-        /* Estilo profissional em preto e roxo */
         * {
             margin: 0;
             padding: 0;
@@ -30,12 +29,13 @@
             padding: 40px;
             box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
             animation: fadeIn 1s ease-in-out;
+            position: relative;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        h1, h2 {
+        h1, h2, h3 {
             text-align: center;
             margin-bottom: 20px;
             color: #8B5CF6;
@@ -122,6 +122,51 @@
             text-align: center;
             margin-bottom: 10px;
         }
+        /* Notificação */
+        .notification-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #8B5CF6;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+        .notification-panel {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #8B5CF6;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 20px rgba(139, 92, 246, 0.3);
+            z-index: 1000;
+        }
+        .notification-panel.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        .notification {
+            padding: 10px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            margin-bottom: 10px;
+        }
+        .notification:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -129,7 +174,6 @@
         <!-- Login/Register Form -->
         <div id="authSection">
             <h1>Nany Premiações</h1>
-            <p style="text-align: center; margin-bottom: 20px; color: #A78BFA;">Sistema de Rifas Profissional</p>
             <form id="authForm">
                 <select id="authType">
                     <option value="register">Registrar</option>
@@ -145,7 +189,12 @@
         <!-- User Panel -->
         <div id="userPanel" class="panel">
             <h2>Seu Painel de Usuário</h2>
-            <p>Bem-vindo, <span id="userName"></span>!</p>
+            <p>Bem-vindo, <span id="userName"></span>! Moedas: <span id="userCoins">0</span></p>
+            <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
+            <div id="notificationPanel" class="notification-panel"></div>
+            <h3>Rifas Disponíveis</h3>
+            <div id="availableRifas"></div>
+            <h3>Suas Rifas</h3>
             <div id="userRifas"></div>
             <button onclick="logout()">Sair</button>
         </div>
@@ -154,8 +203,18 @@
         <div id="adminPanel" class="panel">
             <h2>Painel Admin</h2>
             <p>Bem-vindo, Admin!</p>
-            
-            <!-- Seção para dar moedas -->
+            <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
+            <div id="notificationPanelAdmin" class="notification-panel"></div>
+
+            <!-- Enviar Notificação Personalizada -->
+            <h3>Enviar Notificação</h3>
+            <form id="sendNotificationForm">
+                <select id="notifyUserSelect"></select>
+                <textarea id="notificationMessage" placeholder="Mensagem da notificação" required></textarea>
+                <button type="submit">Enviar Notificação</button>
+            </form>
+
+            <!-- Dar Moedas -->
             <h3>Dar Moedas via PIX</h3>
             <form id="giveCoinsForm">
                 <select id="userSelect"></select>
@@ -163,7 +222,7 @@
                 <button type="submit">Dar Moedas</button>
             </form>
 
-            <!-- Seção para criar rifa -->
+            <!-- Criar Rifa -->
             <h3>Criar Nova Rifa</h3>
             <form id="createRifaForm">
                 <input type="text" id="rifaTitle" placeholder="Título da Rifa" required>
@@ -192,12 +251,13 @@
     </div>
 
     <script>
-        // Dados armazenados no localStorage (simulação de BD)
+        // Dados armazenados no localStorage
         let users = JSON.parse(localStorage.getItem('users')) || {};
         let rifas = JSON.parse(localStorage.getItem('rifas')) || [];
+        let notifications = JSON.parse(localStorage.getItem('notifications')) || {};
         let currentUser = null;
 
-        // Função weighted random (baseado em referências: build lookup table)
+        // Função weighted random para sorteio
         function weightedRandom(items, weights) {
             const totalWeight = weights.reduce((sum, w) => sum + w, 0);
             let random = Math.random() * totalWeight;
@@ -237,6 +297,7 @@
 
             currentUser = username;
             document.getElementById('userName').textContent = username;
+            document.getElementById('userCoins').textContent = users[username].coins;
             hideAuth();
             if (isAdmin(username)) {
                 showAdminPanel();
@@ -244,6 +305,8 @@
             } else {
                 showUserPanel();
                 loadUserRifas();
+                loadAvailableRifas();
+                loadNotifications();
             }
         });
 
@@ -272,47 +335,118 @@
             document.getElementById('userPanel').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'none';
             document.getElementById('authForm').reset();
+            document.getElementById('notificationPanel').classList.remove('active');
+            document.getElementById('notificationPanelAdmin').classList.remove('active');
+        }
+
+        // Toggle notificações
+        function toggleNotifications() {
+            const panel = isAdmin(currentUser) ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
+            panel.classList.toggle('active');
+            loadNotifications();
+        }
+
+        // Carregar notificações
+        function loadNotifications() {
+            const panel = isAdmin(currentUser) ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
+            panel.innerHTML = '<h3>Notificações</h3>';
+            const userNotifications = notifications[currentUser] || [];
+            if (userNotifications.length === 0) {
+                panel.innerHTML += '<p>Sem notificações.</p>';
+            } else {
+                userNotifications.forEach(notif => {
+                    panel.innerHTML += `<div class="notification">${notif}</div>`;
+                });
+            }
+        }
+
+        // Carregar rifas disponíveis
+        function loadAvailableRifas() {
+            const div = document.getElementById('availableRifas');
+            div.innerHTML = '';
+            rifas.forEach(rifa => {
+                if (new Date(rifa.date) > new Date() && !users[currentUser].rifasParticipadas.some(p => p.rifaId === rifa.id)) {
+                    div.innerHTML += `
+                        <div style="border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px;">
+                            ${rifa.title} - Preço: R$${rifa.price} - Data: ${rifa.date}
+                            <button onclick="participateRifa(${rifa.id})">Participar</button>
+                        </div>`;
+                }
+            });
+        }
+
+        // Participar de rifa
+        function participateRifa(rifaId) {
+            const rifa = rifas.find(r => r.id === rifaId);
+            if (!rifa) return;
+            if (users[currentUser].coins < rifa.price) {
+                showMessage('Moedas insuficientes!', 'error');
+                return;
+            }
+            if (rifa.participants.length >= rifa.totalNumbers) {
+                showMessage('Rifa lotada!', 'error');
+                return;
+            }
+            const number = rifa.participants.length + 1;
+            users[currentUser].coins -= rifa.price;
+            users[currentUser].rifasParticipadas.push({ rifaId, number });
+            rifa.participants.push({ user: currentUser, number, chance: rifa.chances?.[currentUser] || 1 });
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('rifas', JSON.stringify(rifas));
+            document.getElementById('userCoins').textContent = users[currentUser].coins;
+            showMessage('Participação confirmada!', 'success');
+            loadUserRifas();
+            loadAvailableRifas();
         }
 
         // Carregar rifas do user
         function loadUserRifas() {
             const userRifasDiv = document.getElementById('userRifas');
-            userRifasDiv.innerHTML = '<h4>Suas Rifas:</h4>';
+            userRifasDiv.innerHTML = '';
             const user = users[currentUser];
             rifas.forEach(rifa => {
-                if (user.rifasParticipadas.includes(rifa.id)) {
+                if (user.rifasParticipadas.some(p => p.rifaId === rifa.id)) {
                     const status = new Date(rifa.date) < new Date() ? (rifa.winner ? `Ganhador: ${rifa.winner}` : 'Sorteando...') : 'Pendente';
-                    userRifasDiv.innerHTML += `<p>${rifa.title} - Número: ${user.rifasParticipadas.filter(id => id.rifaId === rifa.id)[0]?.number} - ${status}</p>`;
+                    const number = user.rifasParticipadas.find(p => p.rifaId === rifa.id).number;
+                    userRifasDiv.innerHTML += `<p>${rifa.title} - Número: ${number} - ${status}</p>`;
                 }
             });
         }
 
         // Carregar admin
         function loadAdmin() {
-            // Preencher select de users
-            const select = document.getElementById('userSelect');
-            select.innerHTML = '';
+            // Preencher select de users (para moedas e notificações)
+            const userSelect = document.getElementById('userSelect');
+            const notifySelect = document.getElementById('notifyUserSelect');
+            userSelect.innerHTML = '';
+            notifySelect.innerHTML = '';
             Object.keys(users).forEach(user => {
                 if (!isAdmin(user)) {
                     const opt = document.createElement('option');
                     opt.value = user;
                     opt.textContent = `${user} (${users[user].coins} moedas)`;
-                    select.appendChild(opt);
+                    userSelect.appendChild(opt);
+                    notifySelect.appendChild(opt.cloneNode(true));
                 }
             });
 
-            // Lista de rifas
+            // Lista de rifas com botão excluir
             const div = document.getElementById('adminRifas');
-            div.innerHTML = '<h4>Rifas:</h4>';
+            div.innerHTML = '';
             rifas.forEach(rifa => {
                 let status = '';
                 if (new Date(rifa.date) < new Date()) {
                     if (!rifa.winner) {
-                        // Sortear agora
+                        // Sortear agora e notificar participantes
                         const participants = rifa.participants.map(p => p.user);
                         const weights = rifa.participants.map(p => p.chance || 1);
                         rifa.winner = weightedRandom(participants, weights);
+                        rifa.participants.forEach(p => {
+                            notifications[p.user] = notifications[p.user] || [];
+                            notifications[p.user].push(`Rifa "${rifa.title}" sorteada! ${p.user === rifa.winner ? 'Você ganhou!' : `Ganhador: ${rifa.winner}`}`);
+                        });
                         localStorage.setItem('rifas', JSON.stringify(rifas));
+                        localStorage.setItem('notifications', JSON.stringify(notifications));
                         status = `Ganhador: ${rifa.winner}`;
                     } else {
                         status = `Ganhador: ${rifa.winner}`;
@@ -320,9 +454,37 @@
                 } else {
                     status = 'Pendente';
                 }
-                div.innerHTML += `<div style="border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px;">${rifa.title} - Data: ${rifa.date} - Preço: R$${rifa.price} - ${status}</div>`;
+                div.innerHTML += `
+                    <div style="border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px;">
+                        ${rifa.title} - Data: ${rifa.date} - Preço: R$${rifa.price} - ${status}
+                        <button onclick="deleteRifa(${rifa.id})">Excluir</button>
+                    </div>`;
             });
         }
+
+        // Excluir rifa
+        function deleteRifa(rifaId) {
+            rifas = rifas.filter(r => r.id !== rifaId);
+            Object.keys(users).forEach(u => {
+                users[u].rifasParticipadas = users[u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
+            });
+            localStorage.setItem('rifas', JSON.stringify(rifas));
+            localStorage.setItem('users', JSON.stringify(users));
+            showMessage('Rifa excluída!', 'success');
+            loadAdmin();
+        }
+
+        // Enviar notificação personalizada
+        document.getElementById('sendNotificationForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('notifyUserSelect').value;
+            const message = document.getElementById('notificationMessage').value;
+            notifications[user] = notifications[user] || [];
+            notifications[user].push(`Admin: ${message}`);
+            localStorage.setItem('notifications', JSON.stringify(notifications));
+            showMessage(`Notificação enviada para ${user}!`, 'success');
+            e.target.reset();
+        });
 
         // Dar moedas
         document.getElementById('giveCoinsForm').addEventListener('submit', (e) => {
@@ -332,7 +494,10 @@
             users[user].coins += amount;
             localStorage.setItem('users', JSON.stringify(users));
             showMessage(`Moedas dadas a ${user}!`, 'success');
-            loadAdmin(); // Atualizar select
+            loadAdmin();
+            if (currentUser === user) {
+                document.getElementById('userCoins').textContent = users[user].coins;
+            }
             e.target.reset();
         });
 
@@ -364,9 +529,9 @@
                 date,
                 price,
                 totalNumbers: totalNums,
-                participants: [], // {user, number, chance}
+                participants: [],
                 winner: null,
-                chances // Para pesos
+                chances
             };
             rifas.push(rifa);
             localStorage.setItem('rifas', JSON.stringify(rifas));
@@ -376,26 +541,18 @@
             loadAdmin();
         });
 
-        // Participar em rifa (para users - simular no user panel)
-        // Nota: Para simplicidade, adicionar botão em loadUserRifas para participar se tiver moedas
-        // Mas como é user panel básico, assumir que users podem "jogar" clicando em rifas pendentes
-        rifas.forEach(rifa => {
-            if (new Date(rifa.date) > new Date() && !users[currentUser]?.rifasParticipadas?.some(p => p.rifaId === rifa.id)) {
-                // Adicionar lógica de participar se coins >= price
-                // Implementar similar ao loadUserRifas
-            }
-        });
-
         // Inicializar
         if (currentUser) {
-            // Auto-login se já logado (simples)
             hideAuth();
             if (isAdmin(currentUser)) {
                 showAdminPanel();
                 loadAdmin();
+                loadNotifications();
             } else {
                 showUserPanel();
                 loadUserRifas();
+                loadAvailableRifas();
+                loadNotifications();
             }
         }
     </script>
