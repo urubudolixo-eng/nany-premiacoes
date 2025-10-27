@@ -189,8 +189,14 @@
             <p>Bem-vindo, <span id="userName"></span>! Moedas: <span id="userCoins">0</span></p>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanel" class="notification-panel"></div>
-            <h3>Rifas Disponíveis</h3>
-            <div id="availableRifas"></div>
+            <h3>Participar de Rifa</h3>
+            <form id="selectRifaForm">
+                <select id="rifaSelect" onchange="showRifaDetails()">
+                    <option value="">Selecione uma rifa</option>
+                </select>
+                <button type="button" onclick="showRifaDetails()">Selecionar Rifa</button>
+                <div id="rifaDetails" class="rifa-details"></div>
+            </form>
             <h3>Suas Rifas</h3>
             <div id="userRifas"></div>
             <button onclick="logout()">Sair</button>
@@ -303,7 +309,7 @@
             } else {
                 showUserPanel();
                 loadUserRifas();
-                loadAvailableRifas();
+                loadRifaSelect();
                 loadNotifications();
             }
         });
@@ -358,40 +364,47 @@
             }
         }
 
-        // Carregar rifas disponíveis
-        function loadAvailableRifas() {
-            const div = document.getElementById('availableRifas');
-            div.innerHTML = '';
+        // Carregar opções de rifas no select
+        function loadRifaSelect() {
+            const select = document.getElementById('rifaSelect');
+            select.innerHTML = '<option value="">Selecione uma rifa</option>';
             rifas.forEach(rifa => {
                 if (new Date(rifa.date) > new Date() && !users[currentUser].rifasParticipadas.some(p => p.rifaId === rifa.id)) {
-                    const takenNumbers = rifa.participants.map(p => p.number);
-                    const availableNumbers = Array.from({ length: rifa.totalNumbers }, (_, i) => i + 1).filter(n => !takenNumbers.includes(n));
-                    div.innerHTML += `
-                        <div class="rifa-item">
-                            <p>${rifa.title} - Preço: R$${rifa.price} - Data: ${rifa.date}</p>
-                            <p>Números disponíveis: ${availableNumbers.length}/${rifa.totalNumbers}</p>
-                            <button onclick="toggleRifaDetails(${rifa.id})">Selecionar Rifa</button>
-                            <div id="rifaDetails_${rifa.id}" class="rifa-details">
-                                <select id="numberSelect_${rifa.id}">
-                                    <option value="">Escolha um número</option>
-                                    ${availableNumbers.map(n => `<option value="${n}">${n}</option>`).join('')}
-                                </select>
-                                <button onclick="participateRifa(${rifa.id})">Confirmar Participação</button>
-                            </div>
-                        </div>`;
+                    const option = document.createElement('option');
+                    option.value = rifa.id;
+                    option.textContent = `${rifa.title} - R$${rifa.price} - ${rifa.date}`;
+                    select.appendChild(option);
                 }
             });
         }
 
-        // Toggle detalhes da rifa
-        function toggleRifaDetails(rifaId) {
-            const details = document.getElementById(`rifaDetails_${rifaId}`);
-            details.classList.toggle('active');
+        // Mostrar detalhes da rifa selecionada
+        function showRifaDetails() {
+            const rifaId = document.getElementById('rifaSelect').value;
+            const detailsDiv = document.getElementById('rifaDetails');
+            detailsDiv.innerHTML = '';
+            if (!rifaId) {
+                detailsDiv.classList.remove('active');
+                return;
+            }
+            const rifa = rifas.find(r => r.id == rifaId);
+            if (!rifa) return;
+            const takenNumbers = rifa.participants.map(p => p.number);
+            const availableNumbers = Array.from({ length: rifa.totalNumbers }, (_, i) => i + 1).filter(n => !takenNumbers.includes(n));
+            detailsDiv.innerHTML = `
+                <p>Números disponíveis: ${availableNumbers.length}/${rifa.totalNumbers}</p>
+                <select id="numberSelect_${rifaId}">
+                    <option value="">Escolha um número</option>
+                    ${availableNumbers.map(n => `<option value="${n}">${n}</option>`).join('')}
+                </select>
+                <button onclick="participateRifa(${rifaId})">Entrar na Rifa</button>
+            `;
+            detailsDiv.classList.add('active');
         }
 
         // Participar de rifa
         function participateRifa(rifaId) {
-            const rifa = rifas.find(r => r.id === rifaId);
+            const rifa = rifas.find(r => r.id == rifaId);
             if (!rifa) return;
             const number = parseInt(document.getElementById(`numberSelect_${rifaId}`).value);
             if (!number) {
@@ -414,7 +427,8 @@
             document.getElementById('userCoins').textContent = users[currentUser].coins;
             showMessage(`Participação confirmada! Número ${number}`, 'success');
             loadUserRifas();
-            loadAvailableRifas();
+            loadRifaSelect();
+            document.getElementById('rifaDetails').classList.remove('active');
         }
 
         // Carregar rifas do user
@@ -571,7 +585,7 @@
             } else {
                 showUserPanel();
                 loadUserRifas();
-                loadAvailableRifas();
+                loadRifaSelect();
                 loadNotifications();
             }
         }
