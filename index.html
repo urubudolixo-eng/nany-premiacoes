@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nany Premiações - Criação de Rifas</title>
+    <style>
+        /* Estilo profissional em preto e roxo */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 50%, #000000 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #8B5CF6;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #8B5CF6;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        input, select, button {
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #8B5CF6;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #A78BFA;
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+        }
+        button {
+            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+            cursor: pointer;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .panel {
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        th {
+            background: rgba(139, 92, 246, 0.2);
+        }
+        .contact {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #A78BFA;
+            border-top: 1px solid rgba(139, 92, 246, 0.3);
+            padding-top: 15px;
+        }
+        .hidden-opt {
+            display: none;
+        }
+        .hidden-opt.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        .error {
+            color: #EF4444;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .success {
+            color: #10B981;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <!-- Login/Register Form -->
+        <div id="authSection">
+            <h1>Nany Premiações</h1>
+            <p style="text-align: center; margin-bottom: 20px; color: #A78BFA;">Sistema de Rifas Profissional</p>
+            <form id="authForm">
+                <select id="authType">
+                    <option value="register">Registrar</option>
+                    <option value="login">Login</option>
+                </select>
+                <input type="text" id="username" placeholder="Usuário" required>
+                <input type="password" id="password" placeholder="Senha" required>
+                <button type="submit">Entrar/Registrar</button>
+            </form>
+            <div id="message"></div>
+        </div>
+
+        <!-- User Panel -->
+        <div id="userPanel" class="panel">
+            <h2>Seu Painel de Usuário</h2>
+            <p>Bem-vindo, <span id="userName"></span>!</p>
+            <div id="userRifas"></div>
+            <button onclick="logout()">Sair</button>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="panel">
+            <h2>Painel Admin</h2>
+            <p>Bem-vindo, Admin!</p>
+            
+            <!-- Seção para dar moedas -->
+            <h3>Dar Moedas via PIX</h3>
+            <form id="giveCoinsForm">
+                <select id="userSelect"></select>
+                <input type="number" id="coinAmount" placeholder="Quantidade de moedas (R$)" min="1" required>
+                <button type="submit">Dar Moedas</button>
+            </form>
+
+            <!-- Seção para criar rifa -->
+            <h3>Criar Nova Rifa</h3>
+            <form id="createRifaForm">
+                <input type="text" id="rifaTitle" placeholder="Título da Rifa" required>
+                <input type="date" id="rifaDate" required>
+                <input type="number" id="rifaPrice" placeholder="Preço por Número (R$)" min="0.01" step="0.01" required>
+                <input type="number" id="totalNumbers" placeholder="Total de Números" min="1" required>
+                <button type="button" onclick="toggleHiddenOpt()">Opções Avançadas (Escondido)</button>
+                <div id="hiddenOpt" class="hidden-opt">
+                    <p>Opção escondida: Definir chances por usuário (peso 1-10)</p>
+                    <textarea id="chancesText" placeholder="Usuário1:peso1,Usuário2:peso2,... (ex: user1:5,user2:2)"></textarea>
+                </div>
+                <button type="submit">Criar Rifa</button>
+            </form>
+
+            <!-- Lista de Rifas -->
+            <h3>Rifas Criadas</h3>
+            <div id="adminRifas"></div>
+
+            <button onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <!-- Rodapé com Contato -->
+    <div class="contact">
+        Contato: +55 75 98868-8483 | Pix para moedas: mesmo número
+    </div>
+
+    <script>
+        // Dados armazenados no localStorage (simulação de BD)
+        let users = JSON.parse(localStorage.getItem('users')) || {};
+        let rifas = JSON.parse(localStorage.getItem('rifas')) || [];
+        let currentUser = null;
+
+        // Função weighted random (baseado em referências: build lookup table)
+        function weightedRandom(items, weights) {
+            const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < weights.length; i++) {
+                random -= weights[i];
+                if (random < 0) return items[i];
+            }
+            return items[items.length - 1];
+        }
+
+        // Verificar se é admin
+        function isAdmin(user) {
+            return user === 'admin'; // Admin hardcoded
+        }
+
+        // Registrar/Login
+        document.getElementById('authForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const type = document.getElementById('authType').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (type === 'register') {
+                if (users[username]) {
+                    showMessage('Usuário já existe!', 'error');
+                    return;
+                }
+                users[username] = { password, coins: 0, rifasParticipadas: [] };
+                localStorage.setItem('users', JSON.stringify(users));
+                showMessage('Registrado com sucesso!', 'success');
+            } else {
+                if (!users[username] || users[username].password !== password) {
+                    showMessage('Credenciais inválidas!', 'error');
+                    return;
+                }
+            }
+
+            currentUser = username;
+            document.getElementById('userName').textContent = username;
+            hideAuth();
+            if (isAdmin(username)) {
+                showAdminPanel();
+                loadAdmin();
+            } else {
+                showUserPanel();
+                loadUserRifas();
+            }
+        });
+
+        // Mostrar mensagens
+        function showMessage(msg, type) {
+            const div = document.getElementById('message');
+            div.innerHTML = `<div class="${type}">${msg}</div>`;
+            setTimeout(() => div.innerHTML = '', 3000);
+        }
+
+        // Esconder auth e mostrar painéis
+        function hideAuth() {
+            document.getElementById('authSection').style.display = 'none';
+        }
+        function showUserPanel() {
+            document.getElementById('userPanel').style.display = 'block';
+        }
+        function showAdminPanel() {
+            document.getElementById('adminPanel').style.display = 'block';
+        }
+
+        // Logout
+        function logout() {
+            currentUser = null;
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('userPanel').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('authForm').reset();
+        }
+
+        // Carregar rifas do user
+        function loadUserRifas() {
+            const userRifasDiv = document.getElementById('userRifas');
+            userRifasDiv.innerHTML = '<h4>Suas Rifas:</h4>';
+            const user = users[currentUser];
+            rifas.forEach(rifa => {
+                if (user.rifasParticipadas.includes(rifa.id)) {
+                    const status = new Date(rifa.date) < new Date() ? (rifa.winner ? `Ganhador: ${rifa.winner}` : 'Sorteando...') : 'Pendente';
+                    userRifasDiv.innerHTML += `<p>${rifa.title} - Número: ${user.rifasParticipadas.filter(id => id.rifaId === rifa.id)[0]?.number} - ${status}</p>`;
+                }
+            });
+        }
+
+        // Carregar admin
+        function loadAdmin() {
+            // Preencher select de users
+            const select = document.getElementById('userSelect');
+            select.innerHTML = '';
+            Object.keys(users).forEach(user => {
+                if (!isAdmin(user)) {
+                    const opt = document.createElement('option');
+                    opt.value = user;
+                    opt.textContent = `${user} (${users[user].coins} moedas)`;
+                    select.appendChild(opt);
+                }
+            });
+
+            // Lista de rifas
+            const div = document.getElementById('adminRifas');
+            div.innerHTML = '<h4>Rifas:</h4>';
+            rifas.forEach(rifa => {
+                let status = '';
+                if (new Date(rifa.date) < new Date()) {
+                    if (!rifa.winner) {
+                        // Sortear agora
+                        const participants = rifa.participants.map(p => p.user);
+                        const weights = rifa.participants.map(p => p.chance || 1);
+                        rifa.winner = weightedRandom(participants, weights);
+                        localStorage.setItem('rifas', JSON.stringify(rifas));
+                        status = `Ganhador: ${rifa.winner}`;
+                    } else {
+                        status = `Ganhador: ${rifa.winner}`;
+                    }
+                } else {
+                    status = 'Pendente';
+                }
+                div.innerHTML += `<div style="border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px;">${rifa.title} - Data: ${rifa.date} - Preço: R$${rifa.price} - ${status}</div>`;
+            });
+        }
+
+        // Dar moedas
+        document.getElementById('giveCoinsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('userSelect').value;
+            const amount = parseFloat(document.getElementById('coinAmount').value);
+            users[user].coins += amount;
+            localStorage.setItem('users', JSON.stringify(users));
+            showMessage(`Moedas dadas a ${user}!`, 'success');
+            loadAdmin(); // Atualizar select
+            e.target.reset();
+        });
+
+        // Toggle opção escondida
+        function toggleHiddenOpt() {
+            const hidden = document.getElementById('hiddenOpt');
+            hidden.classList.toggle('active');
+        }
+
+        // Criar rifa
+        document.getElementById('createRifaForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('rifaTitle').value;
+            const date = document.getElementById('rifaDate').value;
+            const price = parseFloat(document.getElementById('rifaPrice').value);
+            const totalNums = parseInt(document.getElementById('totalNumbers').value);
+            let chances = {};
+            const chancesText = document.getElementById('chancesText').value;
+            if (chancesText) {
+                chancesText.split(',').forEach(pair => {
+                    const [u, w] = pair.split(':');
+                    chances[u.trim()] = parseInt(w.trim());
+                });
+            }
+
+            const rifa = {
+                id: Date.now(),
+                title,
+                date,
+                price,
+                totalNumbers: totalNums,
+                participants: [], // {user, number, chance}
+                winner: null,
+                chances // Para pesos
+            };
+            rifas.push(rifa);
+            localStorage.setItem('rifas', JSON.stringify(rifas));
+            showMessage('Rifa criada!', 'success');
+            e.target.reset();
+            document.getElementById('hiddenOpt').classList.remove('active');
+            loadAdmin();
+        });
+
+        // Participar em rifa (para users - simular no user panel)
+        // Nota: Para simplicidade, adicionar botão em loadUserRifas para participar se tiver moedas
+        // Mas como é user panel básico, assumir que users podem "jogar" clicando em rifas pendentes
+        rifas.forEach(rifa => {
+            if (new Date(rifa.date) > new Date() && !users[currentUser]?.rifasParticipadas?.some(p => p.rifaId === rifa.id)) {
+                // Adicionar lógica de participar se coins >= price
+                // Implementar similar ao loadUserRifas
+            }
+        });
+
+        // Inicializar
+        if (currentUser) {
+            // Auto-login se já logado (simples)
+            hideAuth();
+            if (isAdmin(currentUser)) {
+                showAdminPanel();
+                loadAdmin();
+            } else {
+                showUserPanel();
+                loadUserRifas();
+            }
+        }
+    </script>
+</body>
+</html>
