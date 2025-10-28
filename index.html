@@ -23,6 +23,7 @@
         .notification-btn { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background: #8B5CF6; border: none; cursor: pointer; font-size: 20px; }
         .notification-panel { display: none; position: absolute; top: 60px; right: 10px; width: 300px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.9); border: 2px solid #8B5CF6; border-radius: 10px; padding: 15px; z-index: 1000; }
         .notification-panel.active { display: block; }
+        .github-link { background: #10B981; margin: 10px 0; }
         .contact { margin-top: 20px; font-size: 14px; color: #A78BFA; }
     </style>
 </head>
@@ -59,6 +60,7 @@
             <h2>Admin</h2>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanelAdmin" class="notification-panel"></div>
+            <button class="github-link" onclick="updateGitHub()">Atualizar GitHub (1 Clique)</button>
             <h3>Enviar Notificação</h3>
             <form id="sendNotificationForm">
                 <select id="notifyUserSelect"></select>
@@ -91,25 +93,50 @@
     <div class="contact">PIX: +55 75 98868-8483</div>
 
     <script>
+        // CONFIGURAÇÃO (TROQUE SÓ ISSO)
+        const REPO_OWNER = 'SEU_USUARIO'; // Seu usuário do GitHub
+        const REPO_NAME = 'nany-premiacoes'; // Nome do repo
+        const DATA_URL = `https://${REPO_OWNER}.github.io/${REPO_NAME}/data.json`;
+        const GITHUB_EDIT_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/edit/main/data.json`;
+
         let data = { users: {}, rifas: [], notifications: {} };
         let currentUser = null;
 
-        // Carrega do localStorage
-        function loadData() {
-            const saved = localStorage.getItem('nany_data');
-            if (saved) {
-                data = JSON.parse(saved);
-            } else {
-                data = { users: { admin: { password: 'admin', coins: 0, rifasParticipadas: [] } }, rifas: [], notifications: {} };
+        // Carrega do GitHub
+        async function loadData() {
+            try {
+                const res = await fetch(DATA_URL);
+                const json = await res.json();
+                data = json;
+                if (!data.users['admin']) {
+                    data.users['admin'] = { password: 'admin', coins: 0, rifasParticipadas: [] };
+                }
+                console.log('Carregado:', Object.keys(data.users));
+                if (currentUser) updateUI();
+            } catch (e) {
+                console.error('Erro no GitHub:', e);
+                showMessage('Erro ao carregar. Verifique data.json no repo.', 'error');
             }
         }
 
-        // Salva no localStorage
-        function saveData() {
-            localStorage.setItem('nany_data', JSON.stringify(data));
+        // Atualiza GitHub (abre edit com dados atuais)
+        async function updateGitHub() {
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            window.open(github.com/urubudolixo-eng/nany-premiacoes/, '_blank');
+            showMessage('Baixe e cole no GitHub!', 'success');
         }
 
-        // Mostra mensagem
+        // Poll a cada 10s
+        setInterval(loadData, 10000);
+        loadData();
+
         function showMessage(msg, type) {
             const div = document.getElementById('message');
             div.innerHTML = `<div class="${type}">${msg}</div>`;
@@ -117,9 +144,9 @@
         }
 
         // Auth
-        document.getElementById('authForm').onsubmit = (e) => {
+        document.getElementById('authForm').onsubmit = async (e) => {
             e.preventDefault();
-            loadData();
+            await loadData();
             const type = document.getElementById('authType').value;
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
@@ -127,18 +154,16 @@
             if (type === 'register') {
                 if (data.users[u]) return showMessage('Usuário existe!', 'error');
                 data.users[u] = { password: p, coins: 0, rifasParticipadas: [] };
-                showMessage('Registrado!', 'success');
+                showMessage('Registrado! Admin: Atualize GitHub', 'success');
             } else {
                 if (!data.users[u] || data.users[u].password !== p) return showMessage('Senha errada!', 'error');
             }
-            saveData();
             login(u);
         };
 
         function login(u) {
             currentUser = u;
             document.getElementById('userName').textContent = u;
-            document.getElementById('userCoins').textContent = data.users[u].coins;
             document.getElementById('authSection').style.display = 'none';
             if (u === 'admin') {
                 document.getElementById('adminPanel').style.display = 'block';
@@ -157,24 +182,14 @@
             document.getElementById('adminPanel').style.display = 'none';
         }
 
-        // Notificações
-        function toggleNotifications() {
-            const panel = currentUser === 'admin' ? 'notificationPanelAdmin' : 'notificationPanel';
-            document.getElementById(panel).classList.toggle('active');
-            loadNotifications();
-        }
-
-        function loadNotifications() {
-            const panel = currentUser === 'admin' ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
-            panel.innerHTML = '<h3>Notificações</h3>';
-            const notifs = data.notifications[currentUser] || [];
-            if (notifs.length === 0) panel.innerHTML += '<p>Nenhuma</p>';
-            notifs.forEach(n => panel.innerHTML += `<div>${n}</div>`);
+        function updateUI() {
+            document.getElementById('userCoins').textContent = data.users[currentUser]?.coins || 0;
+            if (currentUser === 'admin') loadAdmin();
+            else loadUserData();
         }
 
         // User
         function loadUserData() {
-            document.getElementById('userCoins').textContent = data.users[currentUser].coins;
             const s = document.getElementById('rifaSelect');
             s.innerHTML = '<option>Selecione</option>';
             data.rifas.forEach(r => {
@@ -199,26 +214,22 @@
             d.classList.remove('active');
             if (!id) return;
             const r = data.rifas.find(x => x.id == id);
-            const taken = r.participants ? r.participants.map(p => p.number) : [];
+            const taken = r.participants?.map(p => p.number) || [];
             const avail = Array.from({length: r.totalNumbers}, (_,i) => i+1).filter(n => !taken.includes(n));
-            d.innerHTML = `<p>Disponíveis: ${avail.length}</p><select id="num_${id}"><option>Número</option>${avail.map(n => `<option value="${n}">${n}</option>`).join('')}</select><button onclick="joinRifa(${id})">Entrar</button>`;
+            d.innerHTML = `<select id="num_${id}">${avail.map(n=>`<option value="${n}">${n}</option>`).join('')}</select><button onclick="joinRifa(${id})">Entrar</button>`;
             d.classList.add('active');
         }
 
         function joinRifa(id) {
-            loadData();
             const r = data.rifas.find(x => x.id == id);
             const num = +document.getElementById(`num_${id}`).value;
-            if (isNaN(num) || r.participants.some(p => p.number === num)) return showMessage('Número inválido!', 'error');
             if (data.users[currentUser].coins < r.price) return showMessage('Sem moedas!', 'error');
             data.users[currentUser].coins -= r.price;
             data.users[currentUser].rifasParticipadas.push({ rifaId: id, number: num });
             r.participants = r.participants || [];
-            r.participants.push({ user: currentUser, number: num, chance: 1 });
-            saveData();
-            document.getElementById('userCoins').textContent = data.users[currentUser].coins;
-            showMessage('Entrou!', 'success');
-            loadUserData();
+            r.participants.push({ user: currentUser, number: num });
+            showMessage('Entrou! Admin: Atualize GitHub', 'success');
+            updateUI();
         }
 
         // Admin
@@ -235,71 +246,63 @@
             const div = document.getElementById('adminRifas');
             div.innerHTML = '';
             data.rifas.forEach(r => {
-                let status = new Date(r.date) < new Date() ? (r.winner ? `Ganhador: ${r.winner}` : 'Sorteando...') : 'Ativa';
-                div.innerHTML += `<div class="rifa-item">${r.title} - ${status} <button onclick="deleteRifa(${r.id})">Excluir</button></div>`;
+                div.innerHTML += `<div class="rifa-item">${r.title} - Preço R$${r.price} <button onclick="deleteRifa(${r.id})">Excluir</button></div>`;
             });
         }
 
         function deleteRifa(id) {
-            loadData();
             data.rifas = data.rifas.filter(r => r.id !== id);
-            Object.keys(data.users).forEach(u => {
-                data.users[u].rifasParticipadas = data.users[u].rifasParticipadas.filter(p => p.rifaId !== id);
-            });
-            saveData();
+            showMessage('Excluída! Atualize GitHub', 'success');
             loadAdmin();
         }
 
         document.getElementById('sendNotificationForm').onsubmit = (e) => {
             e.preventDefault();
-            loadData();
             const u = document.getElementById('notifyUserSelect').value;
             const m = document.getElementById('notificationMessage').value;
             data.notifications[u] = data.notifications[u] || [];
             data.notifications[u].push(`Admin: ${m}`);
-            saveData();
-            showMessage('Enviado!', 'success');
+            showMessage('Enviado! Atualize GitHub', 'success');
             e.target.reset();
         };
 
         document.getElementById('giveCoinsForm').onsubmit = (e) => {
             e.preventDefault();
-            loadData();
             const u = document.getElementById('userSelect').value;
             const a = +document.getElementById('coinAmount').value;
             data.users[u].coins += a;
-            saveData();
-            showMessage('Moedas dadas!', 'success');
+            showMessage('Moedas dadas! Atualize GitHub', 'success');
             loadAdmin();
             e.target.reset();
         };
 
         document.getElementById('createRifaForm').onsubmit = (e) => {
             e.preventDefault();
-            loadData();
             const title = document.getElementById('rifaTitle').value;
             const date = document.getElementById('rifaDate').value;
             const price = +document.getElementById('rifaPrice').value;
             const total = +document.getElementById('totalNumbers').value;
-            const chances = {};
-            const chancesText = document.getElementById('chancesText').value;
-            if (chancesText) {
-                chancesText.split(',').forEach(pair => {
-                    const [user, weight, number] = pair.split(':');
-                    chances[`${user.trim()}:${number.trim()}`] = parseInt(weight);
-                });
-            }
-            const r = { id: Date.now(), title, date, price, totalNumbers: total, participants: [], winner: null, chances };
+            const r = { id: Date.now(), title, date, price, totalNumbers: total, participants: [], winner: null };
             data.rifas.push(r);
-            saveData();
-            showMessage('Rifa criada!', 'success');
+            showMessage('Rifa criada! Atualize GitHub', 'success');
             e.target.reset();
-            document.getElementById('hiddenOpt').classList.remove('active');
             loadAdmin();
         };
 
         function toggleHiddenOpt() {
             document.getElementById('hiddenOpt').classList.toggle('active');
+        }
+
+        function toggleNotifications() {
+            const panel = currentUser === 'admin' ? 'notificationPanelAdmin' : 'notificationPanel';
+            document.getElementById(panel).classList.toggle('active');
+            loadNotifications();
+        }
+
+        function loadNotifications() {
+            const panel = currentUser === 'admin' ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
+            panel.innerHTML = '<h3>Notificações</h3>';
+            (data.notifications[currentUser] || []).forEach(n => panel.innerHTML += `<div>${n}</div>`);
         }
 
         // Inicia
