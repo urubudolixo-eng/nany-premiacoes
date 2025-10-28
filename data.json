@@ -1,10 +1,6 @@
 {
   "users": {
-    "admin": {
-      "password": "admin",
-      "coins": 100,
-      "rifasParticipadas": []
-    }
+    "admin": { "password": "admin", "coins": 100, "rifasParticipadas": [] }
   },
   "rifas": [],
   "notifications": {}
