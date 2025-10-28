@@ -164,6 +164,10 @@
         .notification:last-child {
             border-bottom: none;
         }
+        .update-btn {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -189,6 +193,7 @@
             <p>Bem-vindo, <span id="userName"></span>! Moedas: <span id="userCoins">0</span></p>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanel" class="notification-panel"></div>
+            <button class="update-btn" onclick="loadUserData()">Atualizar Dados</button>
             <h3>Participar de Rifa</h3>
             <form id="selectRifaForm">
                 <select id="rifaSelect" onchange="showRifaDetails()">
@@ -208,6 +213,7 @@
             <p>Bem-vindo, Admin!</p>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanelAdmin" class="notification-panel"></div>
+            <button class="update-btn" onclick="loadAdmin()">Atualizar Dados</button>
 
             <!-- Enviar Notificação -->
             <h3>Enviar Notificação</h3>
@@ -254,10 +260,13 @@
     </div>
 
     <script>
-        // Dados armazenados no localStorage
-        let users = JSON.parse(localStorage.getItem('users')) || {};
-        let rifas = JSON.parse(localStorage.getItem('rifas')) || [];
-        let notifications = JSON.parse(localStorage.getItem('notifications')) || {};
+        // Dados armazenados no localStorage (recarregar sempre para múltiplas contas)
+        function reloadData() {
+            users = JSON.parse(localStorage.getItem('users')) || {};
+            rifas = JSON.parse(localStorage.getItem('rifas')) || [];
+            notifications = JSON.parse(localStorage.getItem('notifications')) || {};
+        }
+
         let currentUser = null;
 
         // Função weighted random para sorteio (baseado em números)
@@ -279,6 +288,7 @@
         // Registrar/Login
         document.getElementById('authForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            reloadData(); // Recarregar dados antes de login
             const type = document.getElementById('authType').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -352,6 +362,7 @@
 
         // Carregar notificações
         function loadNotifications() {
+            reloadData();
             const panel = isAdmin(currentUser) ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
             panel.innerHTML = '<h3>Notificações</h3>';
             const userNotifications = notifications[currentUser] || [];
@@ -364,8 +375,9 @@
             }
         }
 
-        // Carregar opções de rifas no select
+        // Carregar opções de rifas no select (para qualquer usuário logado)
         function loadRifaSelect() {
+            reloadData();
             const select = document.getElementById('rifaSelect');
             select.innerHTML = '<option value="">Selecione uma rifa</option>';
             rifas.forEach(rifa => {
@@ -387,6 +399,7 @@
                 detailsDiv.classList.remove('active');
                 return;
             }
+            reloadData();
             const rifa = rifas.find(r => r.id == rifaId);
             if (!rifa) return;
             const takenNumbers = rifa.participants.map(p => p.number);
@@ -404,6 +417,7 @@
 
         // Participar de rifa
         function participateRifa(rifaId) {
+            reloadData();
             const rifa = rifas.find(r => r.id == rifaId);
             if (!rifa) return;
             const number = parseInt(document.getElementById(`numberSelect_${rifaId}`).value);
@@ -433,6 +447,7 @@
 
         // Carregar rifas do user
         function loadUserRifas() {
+            reloadData();
             const userRifasDiv = document.getElementById('userRifas');
             userRifasDiv.innerHTML = '';
             const user = users[currentUser];
@@ -445,9 +460,18 @@
             });
         }
 
-        // Carregar admin
+        // Função para carregar dados do user
+        function loadUserData() {
+            loadRifaSelect();
+            loadUserRifas();
+            document.getElementById('userCoins').textContent = users[currentUser].coins;
+            showMessage('Dados atualizados!', 'success');
+        }
+
+        // Carregar admin (com reload para novas contas)
         function loadAdmin() {
-            // Preencher select de users
+            reloadData();
+            // Preencher select de users (inclui novas contas)
             const userSelect = document.getElementById('userSelect');
             const notifySelect = document.getElementById('notifyUserSelect');
             userSelect.innerHTML = '';
@@ -498,6 +522,7 @@
 
         // Excluir rifa
         function deleteRifa(rifaId) {
+            reloadData();
             rifas = rifas.filter(r => r.id !== rifaId);
             Object.keys(users).forEach(u => {
                 users[u].rifasParticipadas = users[u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
@@ -511,6 +536,7 @@
         // Enviar notificação personalizada
         document.getElementById('sendNotificationForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            reloadData();
             const user = document.getElementById('notifyUserSelect').value;
             const message = document.getElementById('notificationMessage').value;
             notifications[user] = notifications[user] || [];
@@ -523,6 +549,7 @@
         // Dar moedas
         document.getElementById('giveCoinsForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            reloadData();
             const user = document.getElementById('userSelect').value;
             const amount = parseFloat(document.getElementById('coinAmount').value);
             users[user].coins += amount;
@@ -544,6 +571,7 @@
         // Criar rifa
         document.getElementById('createRifaForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            reloadData();
             const title = document.getElementById('rifaTitle').value;
             const date = document.getElementById('rifaDate').value;
             const price = parseFloat(document.getElementById('rifaPrice').value);
@@ -576,6 +604,7 @@
         });
 
         // Inicializar
+        reloadData();
         if (currentUser) {
             hideAuth();
             if (isAdmin(currentUser)) {
