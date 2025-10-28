@@ -23,7 +23,6 @@
         .notification-btn { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background: #8B5CF6; border: none; cursor: pointer; font-size: 20px; }
         .notification-panel { display: none; position: absolute; top: 60px; right: 10px; width: 300px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.9); border: 2px solid #8B5CF6; border-radius: 10px; padding: 15px; z-index: 1000; }
         .notification-panel.active { display: block; }
-        .github-link { background: #10B981; margin: 10px 0; }
         .contact { margin-top: 20px; font-size: 14px; color: #A78BFA; }
     </style>
 </head>
@@ -60,7 +59,6 @@
             <h2>Admin</h2>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanelAdmin" class="notification-panel"></div>
-            <button class="github-link" onclick="updateGitHub()">Atualizar GitHub (1 Clique)</button>
             <h3>Enviar Notificação</h3>
             <form id="sendNotificationForm">
                 <select id="notifyUserSelect"></select>
@@ -93,54 +91,62 @@
     <div class="contact">PIX: +55 75 98868-8483</div>
 
     <script>
-        // CONFIGURAÇÃO (TROQUE SÓ ISSO)
-        const REPO_OWNER = 'SEU_USUARIO'; // Seu usuário do GitHub
-        const REPO_NAME = 'nany-premiacoes'; // Nome do repo
-        const DATA_URL = `https://${REPO_OWNER}.github.io/${REPO_NAME}/data.json`;
-        const GITHUB_EDIT_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/edit/main/data.json`;
+        // CONFIGURAÇÃO (TROQUE SÓ SEU USUÁRIO E REPO)
+        const REPO_OWNER = 'SEU_USUARIO'; // EX: 'seunome'
+        const REPO_NAME = 'nany-premiacoes';
+        const BRANCH = 'main';
+        const FILE_PATH = 'data.json';
+        const DATA_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${FILE_PATH}`;
+        const API_URL = 'https://api.github.com';
+        const TOKEN = 'SEU_TOKEN_AQUI'; // CRIE NO GITHUB (Settings > Developer settings > Personal access tokens > Generate new token > repo)
 
         let data = { users: {}, rifas: [], notifications: {} };
         let currentUser = null;
+        let sha = null;
 
         // Carrega do GitHub
         async function loadData() {
             try {
-                const res = await fetch(DATA_URL);
+                const res = await fetch(DATA_URL + '?t=' + Date.now());
+                if (!res.ok) throw new Error();
                 const json = await res.json();
                 data = json;
+                sha = (await (await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, { headers: { Authorization: `token ${TOKEN}` } })).json()).sha;
                 if (!data.users['admin']) {
-                    data.users['admin'] = { password: 'admin', coins: 0, rifasParticipadas: [] };
+                    data.users['admin'] = { password: 'admin', coins: 100, rifasParticipadas: [] };
+                    await saveData();
                 }
-                console.log('Carregado:', Object.keys(data.users));
                 if (currentUser) updateUI();
             } catch (e) {
-                console.error('Erro no GitHub:', e);
-                showMessage('Erro ao carregar. Verifique data.json no repo.', 'error');
+                showMessage('Erro ao carregar. Verifique token/repo.', 'error');
             }
         }
 
-        // Atualiza GitHub (abre edit com dados atuais)
-        async function updateGitHub() {
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'data.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            window.open(github.com/urubudolixo-eng/nany-premiacoes/, '_blank');
-            showMessage('Baixe e cole no GitHub!', 'success');
+        // Salva AUTOMÁTICO no GitHub
+        async function saveData() {
+            try {
+                const content = btoa(JSON.stringify(data, null, 2));
+                const body = { message: 'Atualização automática', content, branch: BRANCH, sha };
+                await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+                    method: 'PUT',
+                    headers: { Authorization: `token ${TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+            } catch (e) {
+                showMessage('Erro ao salvar. Verifique token.', 'error');
+            }
         }
 
-        // Poll a cada 10s
+        // Sincronização automática
         setInterval(loadData, 10000);
         loadData();
 
         function showMessage(msg, type) {
-            const div = document.getElementById('message');
-            div.innerHTML = `<div class="${type}">${msg}</div>`;
-            setTimeout(() => div.innerHTML = '', 3000);
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 3000);
         }
 
         // Auth
@@ -148,13 +154,14 @@
             e.preventDefault();
             await loadData();
             const type = document.getElementById('authType').value;
-            const u = document.getElementById('username').value;
+            const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value;
 
             if (type === 'register') {
                 if (data.users[u]) return showMessage('Usuário existe!', 'error');
                 data.users[u] = { password: p, coins: 0, rifasParticipadas: [] };
-                showMessage('Registrado! Admin: Atualize GitHub', 'success');
+                await saveData();
+                showMessage('Registrado!', 'success');
             } else {
                 if (!data.users[u] || data.users[u].password !== p) return showMessage('Senha errada!', 'error');
             }
@@ -165,22 +172,12 @@
             currentUser = u;
             document.getElementById('userName').textContent = u;
             document.getElementById('authSection').style.display = 'none';
-            if (u === 'admin') {
-                document.getElementById('adminPanel').style.display = 'block';
-                loadAdmin();
-            } else {
-                document.getElementById('userPanel').style.display = 'block';
-                loadUserData();
-            }
+            document.getElementById(u === 'admin' ? 'adminPanel' : 'userPanel').style.display = 'block';
+            updateUI();
             loadNotifications();
         }
 
-        function logout() {
-            currentUser = null;
-            document.getElementById('authSection').style.display = 'block';
-            document.getElementById('userPanel').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'none';
-        }
+        function logout() { location.reload(); }
 
         function updateUI() {
             document.getElementById('userCoins').textContent = data.users[currentUser]?.coins || 0;
@@ -188,7 +185,7 @@
             else loadUserData();
         }
 
-        // User
+        // User functions (igual anterior, com await saveData() em ações)
         function loadUserData() {
             const s = document.getElementById('rifaSelect');
             s.innerHTML = '<option>Selecione</option>';
@@ -220,7 +217,8 @@
             d.classList.add('active');
         }
 
-        function joinRifa(id) {
+        async function joinRifa(id) {
+            await loadData();
             const r = data.rifas.find(x => x.id == id);
             const num = +document.getElementById(`num_${id}`).value;
             if (data.users[currentUser].coins < r.price) return showMessage('Sem moedas!', 'error');
@@ -228,63 +226,75 @@
             data.users[currentUser].rifasParticipadas.push({ rifaId: id, number: num });
             r.participants = r.participants || [];
             r.participants.push({ user: currentUser, number: num });
-            showMessage('Entrou! Admin: Atualize GitHub', 'success');
+            await saveData();
+            showMessage('Entrou!', 'success');
             updateUI();
         }
 
-        // Admin
+        // Admin functions (com await saveData())
         function loadAdmin() {
             ['userSelect', 'notifyUserSelect'].forEach(id => {
                 const s = document.getElementById(id);
                 s.innerHTML = '';
                 Object.keys(data.users).filter(u => u !== 'admin').forEach(u => {
                     const o = document.createElement('option');
-                    o.value = u; o.textContent = `${u} (${data.users[u].coins} moedas)`;
+                    o.value = u; o.textContent = u;
                     s.appendChild(o);
                 });
             });
             const div = document.getElementById('adminRifas');
             div.innerHTML = '';
             data.rifas.forEach(r => {
-                div.innerHTML += `<div class="rifa-item">${r.title} - Preço R$${r.price} <button onclick="deleteRifa(${r.id})">Excluir</button></div>`;
+                div.innerHTML += `<div class="rifa-item">${r.title} <button onclick="deleteRifa(${r.id})">X</button></div>`;
             });
         }
 
-        function deleteRifa(id) {
+        async function deleteRifa(id) {
+            await loadData();
             data.rifas = data.rifas.filter(r => r.id !== id);
-            showMessage('Excluída! Atualize GitHub', 'success');
+            await saveData();
             loadAdmin();
         }
 
-        document.getElementById('sendNotificationForm').onsubmit = (e) => {
+        document.getElementById('sendNotificationForm').onsubmit = async (e) => {
             e.preventDefault();
+            await loadData();
             const u = document.getElementById('notifyUserSelect').value;
             const m = document.getElementById('notificationMessage').value;
             data.notifications[u] = data.notifications[u] || [];
             data.notifications[u].push(`Admin: ${m}`);
-            showMessage('Enviado! Atualize GitHub', 'success');
+            await saveData();
+            showMessage('Enviado!', 'success');
             e.target.reset();
         };
 
-        document.getElementById('giveCoinsForm').onsubmit = (e) => {
+        document.getElementById('giveCoinsForm').onsubmit = async (e) => {
             e.preventDefault();
+            await loadData();
             const u = document.getElementById('userSelect').value;
             const a = +document.getElementById('coinAmount').value;
             data.users[u].coins += a;
-            showMessage('Moedas dadas! Atualize GitHub', 'success');
+            await saveData();
+            showMessage('Moedas dadas!', 'success');
             loadAdmin();
             e.target.reset();
         };
 
-        document.getElementById('createRifaForm').onsubmit = (e) => {
+        document.getElementById('createRifaForm').onsubmit = async (e) => {
             e.preventDefault();
-            const title = document.getElementById('rifaTitle').value;
-            const date = document.getElementById('rifaDate').value;
-            const price = +document.getElementById('rifaPrice').value;
-            const total = +document.getElementById('totalNumbers').value;
-            const r = { id: Date.now(), title, date, price, totalNumbers: total, participants: [], winner: null };
+            await loadData();
+            const r = {
+                id: Date.now(),
+                title: document.getElementById('rifaTitle').value,
+                date: document.getElementById('rifaDate').value,
+                price: +document.getElementById('rifaPrice').value,
+                totalNumbers: +document.getElementById('totalNumbers').value,
+                participants: [],
+                winner: null
+            };
             data.rifas.push(r);
-            showMessage('Rifa criada! Atualize GitHub', 'success');
+            await saveData();
+            showMessage('Rifa criada!', 'success');
             e.target.reset();
             loadAdmin();
         };
@@ -304,9 +314,6 @@
             panel.innerHTML = '<h3>Notificações</h3>';
             (data.notifications[currentUser] || []).forEach(n => panel.innerHTML += `<div>${n}</div>`);
         }
-
-        // Inicia
-        loadData();
     </script>
 </body>
 </html>
