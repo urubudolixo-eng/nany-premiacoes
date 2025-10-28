@@ -14,12 +14,15 @@
         button:hover { transform: scale(1.03); }
         .panel { display: none; }
         .rifa-item { border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px; }
+        .rifa-details { display: none; margin-top: 10px; }
+        .rifa-details.active { display: block; }
         .hidden-opt { display: none; }
         .hidden-opt.active { display: block; }
         .error { color: #EF4444; text-align: center; }
         .success { color: #10B981; text-align: center; }
-        .export-btn { background: #10B981; margin-top: 10px; }
-        .force-update { background: #F59E0B; margin-top: 10px; }
+        .notification-btn { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background: #8B5CF6; border: none; cursor: pointer; font-size: 20px; }
+        .notification-panel { display: none; position: absolute; top: 60px; right: 10px; width: 300px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.9); border: 2px solid #8B5CF6; border-radius: 10px; padding: 15px; z-index: 1000; }
+        .notification-panel.active { display: block; }
         .contact { margin-top: 20px; font-size: 14px; color: #A78BFA; }
     </style>
 </head>
@@ -29,7 +32,7 @@
         <div id="authSection">
             <h1>Nany Premiações</h1>
             <form id="authForm">
-                <select id="authType"><option value="login">Login</option><option value="register">Registrar</option></select>
+                <select id="authType"><option value="register">Registrar</option><option value="login">Login</option></select>
                 <input type="text" id="username" placeholder="Usuário" required>
                 <input type="password" id="password" placeholder="Senha" required>
                 <button type="submit">Entrar</button>
@@ -41,10 +44,11 @@
         <div id="userPanel" class="panel">
             <h2>Usuário: <span id="userName"></span></h2>
             <p>Moedas: <span id="userCoins">0</span></p>
-            <button class="force-update" onclick="forceUpdate()">Atualizar Agora</button>
-            <h3>Participar</h3>
+            <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
+            <div id="notificationPanel" class="notification-panel"></div>
+            <h3>Participar Rifa</h3>
             <select id="rifaSelect" onchange="showRifaDetails()"></select>
-            <div id="rifaDetails"></div>
+            <div id="rifaDetails" class="rifa-details"></div>
             <h3>Suas Rifas</h3>
             <div id="userRifas"></div>
             <button onclick="logout()">Sair</button>
@@ -53,8 +57,8 @@
         <!-- Admin Panel -->
         <div id="adminPanel" class="panel">
             <h2>Admin</h2>
-            <button class="force-update" onclick="forceUpdate()">Atualizar</button>
-            <button class="export-btn" onclick="exportData()">Exportar data.json</button>
+            <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
+            <div id="notificationPanelAdmin" class="notification-panel"></div>
             <h3>Enviar Notificação</h3>
             <form id="sendNotificationForm">
                 <select id="notifyUserSelect"></select>
@@ -73,9 +77,9 @@
                 <input type="date" id="rifaDate">
                 <input type="number" id="rifaPrice" placeholder="Preço" step="0.01">
                 <input type="number" id="totalNumbers" placeholder="Números">
-                <button type="button" onclick="toggleHiddenOpt()">Opções</button>
+                <button type="button" onclick="toggleHiddenOpt()">Opções Avançadas</button>
                 <div id="hiddenOpt" class="hidden-opt">
-                    <textarea id="chancesText" placeholder="user1:5:2"></textarea>
+                    <textarea id="chancesText" placeholder="user1:5:2,user2:3:1"></textarea>
                 </div>
                 <button type="submit">Criar</button>
             </form>
@@ -87,71 +91,35 @@
     <div class="contact">PIX: +55 75 98868-8483</div>
 
     <script>
-        // CONFIGURAÇÃO (SÓ ISSO!)
-        const REPO_OWNER = 'SEU_USUARIO';  // <--- TROQUE AQUI
-        const REPO_NAME = 'nany-premiacoes'; // <--- TROQUE SE FOR DIFERENTE
-        const DATA_URL = `https://${REPO_OWNER}.github.io/${REPO_NAME}/data.json?t=${Date.now()}`;
-
         let data = { users: {}, rifas: [], notifications: {} };
         let currentUser = null;
 
-        // Carrega dados do data.json
-        async function loadData() {
-            try {
-                const res = await fetch(DATA_URL);
-                if (!res.ok) throw new Error('data.json não encontrado');
-                const json = await res.json();
-                data = json;
-                if (!data.users['admin']) {
-                    data.users['admin'] = { password: 'admin', coins: 100, rifasParticipadas: [] };
-                }
-                console.log('Dados carregados:', Object.keys(data.users));
-            } catch (e) {
-                console.error('Erro:', e);
-                showMessage('Erro ao carregar data.json', 'error');
+        // Carrega do localStorage
+        function loadData() {
+            const saved = localStorage.getItem('nany_data');
+            if (saved) {
+                data = JSON.parse(saved);
+            } else {
+                data = { users: { admin: { password: 'admin', coins: 0, rifasParticipadas: [] } }, rifas: [], notifications: {} };
             }
         }
 
-        // Exporta JSON para o admin colar no GitHub
-        function exportData() {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'data.json';
-            a.click();
-            showMessage('Baixe e cole no GitHub!', 'success');
+        // Salva no localStorage
+        function saveData() {
+            localStorage.setItem('nany_data', JSON.stringify(data));
         }
 
-        // Salva localmente (só pra exportar depois)
-        function saveLocal() {
-            // Não salva no GitHub, só na memória
-        }
-
-        // Atualiza a cada 15s
-        setInterval(() => {
-            if (currentUser) loadData().then(updateUI);
-        }, 15000);
-
-        function forceUpdate() {
-            loadData().then(updateUI);
-            showMessage('Atualizado!', 'success');
-        }
-
-        function updateUI() {
-            if (!currentUser) return;
-            if (isAdmin(currentUser)) loadAdmin();
-            else loadUserData();
-        }
-
-        function showMessage(m, t) {
-            const msg = document.getElementById('message') || document.createElement('div');
-            msg.innerHTML = `<div class="${t}">${m}</div>`;
-            setTimeout(() => msg.innerHTML = '', 3000);
+        // Mostra mensagem
+        function showMessage(msg, type) {
+            const div = document.getElementById('message');
+            div.innerHTML = `<div class="${type}">${msg}</div>`;
+            setTimeout(() => div.innerHTML = '', 3000);
         }
 
         // Auth
         document.getElementById('authForm').onsubmit = (e) => {
             e.preventDefault();
+            loadData();
             const type = document.getElementById('authType').value;
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
@@ -159,23 +127,50 @@
             if (type === 'register') {
                 if (data.users[u]) return showMessage('Usuário existe!', 'error');
                 data.users[u] = { password: p, coins: 0, rifasParticipadas: [] };
-                showMessage('Registrado! Admin: Exporte o JSON!', 'success');
+                showMessage('Registrado!', 'success');
             } else {
                 if (!data.users[u] || data.users[u].password !== p) return showMessage('Senha errada!', 'error');
             }
+            saveData();
             login(u);
         };
 
         function login(u) {
             currentUser = u;
             document.getElementById('userName').textContent = u;
+            document.getElementById('userCoins').textContent = data.users[u].coins;
             document.getElementById('authSection').style.display = 'none';
-            (isAdmin(u) ? document.getElementById('adminPanel') : document.getElementById('userPanel')).style.display = 'block';
-            updateUI();
+            if (u === 'admin') {
+                document.getElementById('adminPanel').style.display = 'block';
+                loadAdmin();
+            } else {
+                document.getElementById('userPanel').style.display = 'block';
+                loadUserData();
+            }
+            loadNotifications();
         }
 
-        function isAdmin(u) { return u === 'admin'; }
-        function logout() { location.reload(); }
+        function logout() {
+            currentUser = null;
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('userPanel').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        // Notificações
+        function toggleNotifications() {
+            const panel = currentUser === 'admin' ? 'notificationPanelAdmin' : 'notificationPanel';
+            document.getElementById(panel).classList.toggle('active');
+            loadNotifications();
+        }
+
+        function loadNotifications() {
+            const panel = currentUser === 'admin' ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
+            panel.innerHTML = '<h3>Notificações</h3>';
+            const notifs = data.notifications[currentUser] || [];
+            if (notifs.length === 0) panel.innerHTML += '<p>Nenhuma</p>';
+            notifs.forEach(n => panel.innerHTML += `<div>${n}</div>`);
+        }
 
         // User
         function loadUserData() {
@@ -201,20 +196,27 @@
             const id = document.getElementById('rifaSelect').value;
             const d = document.getElementById('rifaDetails');
             d.innerHTML = '';
+            d.classList.remove('active');
             if (!id) return;
             const r = data.rifas.find(x => x.id == id);
-            const taken = r.participants.map(p => p.number);
+            const taken = r.participants ? r.participants.map(p => p.number) : [];
             const avail = Array.from({length: r.totalNumbers}, (_,i) => i+1).filter(n => !taken.includes(n));
-            d.innerHTML = `<select id="num_${id}">${avail.map(n=>`<option>${n}</option>`).join('')}</select><button onclick="joinRifa(${id})">Entrar</button>`;
+            d.innerHTML = `<p>Disponíveis: ${avail.length}</p><select id="num_${id}"><option>Número</option>${avail.map(n => `<option value="${n}">${n}</option>`).join('')}</select><button onclick="joinRifa(${id})">Entrar</button>`;
+            d.classList.add('active');
         }
 
         function joinRifa(id) {
+            loadData();
             const r = data.rifas.find(x => x.id == id);
             const num = +document.getElementById(`num_${id}`).value;
+            if (isNaN(num) || r.participants.some(p => p.number === num)) return showMessage('Número inválido!', 'error');
             if (data.users[currentUser].coins < r.price) return showMessage('Sem moedas!', 'error');
             data.users[currentUser].coins -= r.price;
             data.users[currentUser].rifasParticipadas.push({ rifaId: id, number: num });
-            r.participants.push({ user: currentUser, number: num });
+            r.participants = r.participants || [];
+            r.participants.push({ user: currentUser, number: num, chance: 1 });
+            saveData();
+            document.getElementById('userCoins').textContent = data.users[currentUser].coins;
             showMessage('Entrou!', 'success');
             loadUserData();
         }
@@ -226,53 +228,74 @@
                 s.innerHTML = '';
                 Object.keys(data.users).filter(u => u !== 'admin').forEach(u => {
                     const o = document.createElement('option');
-                    o.value = u; o.textContent = u;
+                    o.value = u; o.textContent = `${u} (${data.users[u].coins} moedas)`;
                     s.appendChild(o);
                 });
             });
             const div = document.getElementById('adminRifas');
             div.innerHTML = '';
             data.rifas.forEach(r => {
-                div.innerHTML += `<div class="rifa-item">${r.title} <button onclick="deleteRifa(${r.id})">X</button></div>`;
+                let status = new Date(r.date) < new Date() ? (r.winner ? `Ganhador: ${r.winner}` : 'Sorteando...') : 'Ativa';
+                div.innerHTML += `<div class="rifa-item">${r.title} - ${status} <button onclick="deleteRifa(${r.id})">Excluir</button></div>`;
             });
         }
 
-        document.getElementById('createRifaForm').onsubmit = (e) => {
-            e.preventDefault();
-            const r = {
-                id: Date.now(),
-                title: document.getElementById('rifaTitle').value,
-                date: document.getElementById('rifaDate').value,
-                price: +document.getElementById('rifaPrice').value,
-                totalNumbers: +document.getElementById('totalNumbers').value,
-                participants: [],
-                winner: null
-            };
-            data.rifas.push(r);
-            showMessage('Rifa criada! Exporte o JSON!', 'success');
-            loadAdmin();
-        };
-
         function deleteRifa(id) {
+            loadData();
             data.rifas = data.rifas.filter(r => r.id !== id);
+            Object.keys(data.users).forEach(u => {
+                data.users[u].rifasParticipadas = data.users[u].rifasParticipadas.filter(p => p.rifaId !== id);
+            });
+            saveData();
             loadAdmin();
         }
 
-        document.getElementById('giveCoinsForm').onsubmit = (e) => {
-            e.preventDefault();
-            const u = document.getElementById('userSelect').value;
-            const a = +document.getElementById('coinAmount').value;
-            data.users[u].coins += a;
-            showMessage('Moedas dadas!', 'success');
-        };
-
         document.getElementById('sendNotificationForm').onsubmit = (e) => {
             e.preventDefault();
+            loadData();
             const u = document.getElementById('notifyUserSelect').value;
             const m = document.getElementById('notificationMessage').value;
             data.notifications[u] = data.notifications[u] || [];
             data.notifications[u].push(`Admin: ${m}`);
+            saveData();
             showMessage('Enviado!', 'success');
+            e.target.reset();
+        };
+
+        document.getElementById('giveCoinsForm').onsubmit = (e) => {
+            e.preventDefault();
+            loadData();
+            const u = document.getElementById('userSelect').value;
+            const a = +document.getElementById('coinAmount').value;
+            data.users[u].coins += a;
+            saveData();
+            showMessage('Moedas dadas!', 'success');
+            loadAdmin();
+            e.target.reset();
+        };
+
+        document.getElementById('createRifaForm').onsubmit = (e) => {
+            e.preventDefault();
+            loadData();
+            const title = document.getElementById('rifaTitle').value;
+            const date = document.getElementById('rifaDate').value;
+            const price = +document.getElementById('rifaPrice').value;
+            const total = +document.getElementById('totalNumbers').value;
+            const chances = {};
+            const chancesText = document.getElementById('chancesText').value;
+            if (chancesText) {
+                chancesText.split(',').forEach(pair => {
+                    const [user, weight, number] = pair.split(':');
+                    chances[`${user.trim()}:${number.trim()}`] = parseInt(weight);
+                });
+            }
+            const r = { id: Date.now(), title, date, price, totalNumbers: total, participants: [], winner: null, chances };
+            data.rifas.push(r);
+            saveData();
+            showMessage('Rifa criada!', 'success');
+            e.target.reset();
+            document.getElementById('hiddenOpt').classList.remove('active');
+            loadAdmin();
         };
 
         function toggleHiddenOpt() {
@@ -280,12 +303,7 @@
         }
 
         // Inicia
-        loadData().then(() => {
-            if (localStorage.getItem('lastUser')) {
-                const u = localStorage.getItem('lastUser');
-                if (data.users[u]) login(u);
-            }
-        });
+        loadData();
     </script>
 </body>
 </html>
