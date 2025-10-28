@@ -91,13 +91,10 @@
     <div class="contact">PIX: +55 75 98868-8483</div>
 
     <script>
-        // CONFIGURAÇÃO (TROQUE SÓ SEU USUÁRIO, REPO E TOKEN)
-        const REPO_OWNER = 'urubudolixo-eng'; // EX: 'meunick'
+        const REPO_OWNER = 'urubudolixo-eng'; // Ex: 'joao123'
         const REPO_NAME = 'nany-premiacoes';
-        const BRANCH = 'gh-pages';
-        const FILE_PATH = 'data.json';
-        const API_URL = 'https://api.github.com';
-        const TOKEN = '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'; // Token com permissão 'repo' (crie em Settings > Developer settings)
+        const DATA_URL = `https://${REPO_OWNER}.github.io/${REPO_NAME}/data.json?t=${Date.now()}`;
+        const TOKEN = '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'; // Token novo com escopo 'repo'
 
         let data = { users: {}, rifas: [], notifications: {} };
         let currentUser = null;
