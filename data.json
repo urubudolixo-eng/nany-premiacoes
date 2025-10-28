@@ -1,1 +1,11 @@
-{ "users": {}, "rifas": [], "notifications": {} }
+{
+  "users": {
+    "admin": {
+      "password": "admin",
+      "coins": 0,
+      "rifasParticipadas": []
+    }
+  },
+  "rifas": [],
+  "notifications": {}
+}
