@@ -91,79 +91,116 @@
     <div class="contact">PIX: +55 75 98868-8483</div>
 
     <script>
-        // CONFIGURAÇÃO (TROQUE SÓ SEU USUÁRIO E REPO)
-        const REPO_OWNER = 'urubudolixo-eng'; // EX: 'seunome'
+        // CONFIGURAÇÃO (TROQUE SÓ SEU USUÁRIO, REPO E TOKEN)
+        const REPO_OWNER = 'urubudolixo-eng'; // EX: 'meunick'
         const REPO_NAME = 'nany-premiacoes';
         const BRANCH = 'main';
         const FILE_PATH = 'data.json';
-        const DATA_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${FILE_PATH}`;
         const API_URL = 'https://api.github.com';
-        const TOKEN = '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'; // CRIE NO GITHUB (Settings > Developer settings > Personal access tokens > Generate new token > repo)
+        const TOKEN = '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'; // Token com permissão 'repo' (crie em Settings > Developer settings)
 
         let data = { users: {}, rifas: [], notifications: {} };
         let currentUser = null;
-        let sha = null;
+        let currentSha = null;
 
-        // Carrega do GitHub
+        // Carrega dados + SHA do GitHub
         async function loadData() {
             try {
-                const res = await fetch(DATA_URL + '?t=' + Date.now());
-                if (!res.ok) throw new Error();
-                const json = await res.json();
+                const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${FILE_PATH}?t=${Date.now()}`);
+                if (!rawRes.ok) throw new Error('Arquivo não encontrado');
+                const json = await rawRes.json();
                 data = json;
-                sha = (await (await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, { headers: { Authorization: `token ${TOKEN}` } })).json()).sha;
+
+                const apiRes = await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}`, {
+                    headers: { Authorization: `token ${TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+                });
+                if (!apiRes.ok) throw new Error('Erro API');
+                const apiJson = await apiRes.json();
+                currentSha = apiJson.sha;
+
+                if (!data.users) data.users = {};
                 if (!data.users['admin']) {
                     data.users['admin'] = { password: 'admin', coins: 100, rifasParticipadas: [] };
                     await saveData();
                 }
                 if (currentUser) updateUI();
             } catch (e) {
-                showMessage('Erro ao carregar. Verifique token/repo.', 'error');
+                showMessage('Erro ao carregar dados. Verifique token/repo/data.json.', 'error');
+                console.error(e);
             }
         }
 
-        // Salva AUTOMÁTICO no GitHub
+        // Salva AUTOMÁTICO no GitHub (com SHA atualizado)
         async function saveData() {
             try {
-                const content = btoa(JSON.stringify(data, null, 2));
-                const body = { message: 'Atualização automática', content, branch: BRANCH, sha };
-                await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+                // Atualiza SHA antes de salvar
+                const apiRes = await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}`, {
+                    headers: { Authorization: `token ${TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+                });
+                if (apiRes.ok) {
+                    const apiJson = await apiRes.json();
+                    currentSha = apiJson.sha;
+                }
+
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+                const body = {
+                    message: 'Atualização automática do sistema',
+                    content: content,
+                    branch: BRANCH,
+                    sha: currentSha
+                };
+
+                const putRes = await fetch(`${API_URL}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     method: 'PUT',
-                    headers: { Authorization: `token ${TOKEN}`, 'Content-Type': 'application/json' },
+                    headers: {
+                        Authorization: `token ${TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
                     body: JSON.stringify(body)
                 });
+
+                if (!putRes.ok) {
+                    const err = await putRes.json();
+                    throw new Error(err.message || 'Falha ao salvar');
+                }
+
+                // Atualiza SHA após salvar
+                const putJson = await putRes.json();
+                currentSha = putJson.content.sha;
             } catch (e) {
-                showMessage('Erro ao salvar. Verifique token.', 'error');
+                showMessage('Erro ao salvar no GitHub. Verifique token.', 'error');
+                console.error(e);
             }
         }
 
-        // Sincronização automática
-        setInterval(loadData, 10000);
+        // Sincronização automática a cada 8s
+        setInterval(loadData, 8000);
         loadData();
 
         function showMessage(msg, type) {
-            const div = document.createElement('div');
-            div.className = type;
-            div.textContent = msg;
-            document.body.appendChild(div);
-            setTimeout(() => div.remove(), 3000);
+            const div = document.getElementById('message') || document.createElement('div');
+            div.id = 'message';
+            div.innerHTML = `<div class="${type}">${msg}</div>`;
+            if (!document.getElementById('message')) document.body.appendChild(div);
+            setTimeout(() => div.innerHTML = '', 5000);
         }
 
-        // Auth
+        // Auth - ESPERA CARREGAR E SALVA COM SHA
         document.getElementById('authForm').onsubmit = async (e) => {
             e.preventDefault();
-            await loadData();
+            await loadData(); // Garante dados frescos + SHA
             const type = document.getElementById('authType').value;
             const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value;
 
             if (type === 'register') {
-                if (data.users[u]) return showMessage('Usuário existe!', 'error');
+                if (data.users[u]) return showMessage('Usuário já existe!', 'error');
                 data.users[u] = { password: p, coins: 0, rifasParticipadas: [] };
                 await saveData();
-                showMessage('Registrado!', 'success');
+                showMessage('Registrado com sucesso!', 'success');
             } else {
-                if (!data.users[u] || data.users[u].password !== p) return showMessage('Senha errada!', 'error');
+                if (!data.users[u] || data.users[u].password !== p) return showMessage('Usuário ou senha inválidos!', 'error');
             }
             login(u);
         };
@@ -185,7 +222,7 @@
             else loadUserData();
         }
 
-        // User functions (igual anterior, com await saveData() em ações)
+        // User
         function loadUserData() {
             const s = document.getElementById('rifaSelect');
             s.innerHTML = '<option>Selecione</option>';
@@ -227,18 +264,18 @@
             r.participants = r.participants || [];
             r.participants.push({ user: currentUser, number: num });
             await saveData();
-            showMessage('Entrou!', 'success');
+            showMessage('Entrou na rifa!', 'success');
             updateUI();
         }
 
-        // Admin functions (com await saveData())
+        // Admin
         function loadAdmin() {
             ['userSelect', 'notifyUserSelect'].forEach(id => {
                 const s = document.getElementById(id);
                 s.innerHTML = '';
                 Object.keys(data.users).filter(u => u !== 'admin').forEach(u => {
                     const o = document.createElement('option');
-                    o.value = u; o.textContent = u;
+                    o.value = u; o.textContent = `${u} (${data.users[u].coins} moedas)`;
                     s.appendChild(o);
                 });
             });
@@ -253,6 +290,7 @@
             await loadData();
             data.rifas = data.rifas.filter(r => r.id !== id);
             await saveData();
+            showMessage('Rifa excluída!', 'success');
             loadAdmin();
         }
 
@@ -264,7 +302,7 @@
             data.notifications[u] = data.notifications[u] || [];
             data.notifications[u].push(`Admin: ${m}`);
             await saveData();
-            showMessage('Enviado!', 'success');
+            showMessage('Notificação enviada!', 'success');
             e.target.reset();
         };
 
