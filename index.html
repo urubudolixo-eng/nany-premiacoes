@@ -260,16 +260,23 @@
     </div>
 
     <script>
-        // Dados armazenados no localStorage (recarregar sempre para múltiplas contas)
+        // Dados armazenados no localStorage
+        let users = JSON.parse(localStorage.getItem('users')) || {};
+        let rifas = JSON.parse(localStorage.getItem('rifas')) || [];
+        let notifications = JSON.parse(localStorage.getItem('notifications')) || {};
+        let currentUser = null;
+
+        // Recarregar dados do localStorage
         function reloadData() {
+            console.log('Recarregando dados do localStorage...');
             users = JSON.parse(localStorage.getItem('users')) || {};
             rifas = JSON.parse(localStorage.getItem('rifas')) || [];
             notifications = JSON.parse(localStorage.getItem('notifications')) || {};
+            console.log('Usuários:', Object.keys(users));
+            console.log('Rifas:', rifas);
         }
 
-        let currentUser = null;
-
-        // Função weighted random para sorteio (baseado em números)
+        // Função weighted random para sorteio
         function weightedRandom(numbers, weights) {
             const totalWeight = weights.reduce((sum, w) => sum + w, 0);
             let random = Math.random() * totalWeight;
@@ -282,13 +289,13 @@
 
         // Verificar se é admin
         function isAdmin(user) {
-            return user === 'admin'; // Admin hardcoded
+            return user === 'admin';
         }
 
         // Registrar/Login
         document.getElementById('authForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            reloadData(); // Recarregar dados antes de login
+            reloadData();
             const type = document.getElementById('authType').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -300,6 +307,7 @@
                 }
                 users[username] = { password, coins: 0, rifasParticipadas: [] };
                 localStorage.setItem('users', JSON.stringify(users));
+                console.log(`Novo usuário registrado: ${username}`);
                 showMessage('Registrado com sucesso!', 'success');
             } else {
                 if (!users[username] || users[username].password !== password) {
@@ -311,6 +319,7 @@
             currentUser = username;
             document.getElementById('userName').textContent = username;
             document.getElementById('userCoins').textContent = users[username].coins;
+            console.log(`Usuário logado: ${currentUser}`);
             hideAuth();
             if (isAdmin(username)) {
                 showAdminPanel();
@@ -351,6 +360,7 @@
             document.getElementById('authForm').reset();
             document.getElementById('notificationPanel').classList.remove('active');
             document.getElementById('notificationPanelAdmin').classList.remove('active');
+            console.log('Logout realizado');
         }
 
         // Toggle notificações
@@ -373,21 +383,23 @@
                     panel.innerHTML += `<div class="notification">${notif}</div>`;
                 });
             }
+            console.log(`Notificações carregadas para ${currentUser}:`, userNotifications);
         }
 
-        // Carregar opções de rifas no select (para qualquer usuário logado)
+        // Carregar opções de rifas no select
         function loadRifaSelect() {
             reloadData();
             const select = document.getElementById('rifaSelect');
             select.innerHTML = '<option value="">Selecione uma rifa</option>';
             rifas.forEach(rifa => {
-                if (new Date(rifa.date) > new Date() && !users[currentUser].rifasParticipadas.some(p => p.rifaId === rifa.id)) {
+                if (new Date(rifa.date) > new Date() && !users[currentUser]?.rifasParticipadas?.some(p => p.rifaId === rifa.id)) {
                     const option = document.createElement('option');
                     option.value = rifa.id;
                     option.textContent = `${rifa.title} - R$${rifa.price} - ${rifa.date}`;
                     select.appendChild(option);
                 }
             });
+            console.log(`Rifas carregadas para ${currentUser}:`, rifas.filter(r => new Date(r.date) > new Date()));
         }
 
         // Mostrar detalhes da rifa selecionada
@@ -401,7 +413,10 @@
             }
             reloadData();
             const rifa = rifas.find(r => r.id == rifaId);
-            if (!rifa) return;
+            if (!rifa) {
+                console.log(`Rifa ${rifaId} não encontrada!`);
+                return;
+            }
             const takenNumbers = rifa.participants.map(p => p.number);
             const availableNumbers = Array.from({ length: rifa.totalNumbers }, (_, i) => i + 1).filter(n => !takenNumbers.includes(n));
             detailsDiv.innerHTML = `
@@ -413,24 +428,32 @@
                 <button onclick="participateRifa(${rifaId})">Entrar na Rifa</button>
             `;
             detailsDiv.classList.add('active');
+            console.log(`Detalhes da rifa ${rifaId} exibidos: ${availableNumbers.length} números disponíveis`);
         }
 
         // Participar de rifa
         function participateRifa(rifaId) {
             reloadData();
             const rifa = rifas.find(r => r.id == rifaId);
-            if (!rifa) return;
+            if (!rifa) {
+                showMessage('Rifa não encontrada!', 'error');
+                console.log(`Erro: Rifa ${rifaId} não encontrada`);
+                return;
+            }
             const number = parseInt(document.getElementById(`numberSelect_${rifaId}`).value);
             if (!number) {
                 showMessage('Escolha um número!', 'error');
+                console.log('Erro: Nenhum número selecionado');
                 return;
             }
             if (rifa.participants.some(p => p.number === number)) {
                 showMessage('Número já escolhido!', 'error');
+                console.log(`Erro: Número ${number} já escolhido na rifa ${rifaId}`);
                 return;
             }
             if (users[currentUser].coins < rifa.price) {
                 showMessage('Moedas insuficientes! Faça um PIX para +55 75 98868-8483.', 'error');
+                console.log(`Erro: Moedas insuficientes para ${currentUser} (${users[currentUser].coins} < ${rifa.price})`);
                 return;
             }
             users[currentUser].coins -= rifa.price;
@@ -440,6 +463,7 @@
             localStorage.setItem('rifas', JSON.stringify(rifas));
             document.getElementById('userCoins').textContent = users[currentUser].coins;
             showMessage(`Participação confirmada! Número ${number}`, 'success');
+            console.log(`Participação confirmada: ${currentUser} na rifa ${rifaId}, número ${number}`);
             loadUserRifas();
             loadRifaSelect();
             document.getElementById('rifaDetails').classList.remove('active');
@@ -458,20 +482,23 @@
                     userRifasDiv.innerHTML += `<p>${rifa.title} - Número: ${number} - ${status}</p>`;
                 }
             });
+            console.log(`Rifas participadas por ${currentUser}:`, user.rifasParticipadas);
         }
 
         // Função para carregar dados do user
         function loadUserData() {
+            reloadData();
             loadRifaSelect();
             loadUserRifas();
             document.getElementById('userCoins').textContent = users[currentUser].coins;
             showMessage('Dados atualizados!', 'success');
+            console.log(`Dados do usuário ${currentUser} atualizados`);
         }
 
-        // Carregar admin (com reload para novas contas)
+        // Carregar admin
         function loadAdmin() {
             reloadData();
-            // Preencher select de users (inclui novas contas)
+            // Preencher select de users
             const userSelect = document.getElementById('userSelect');
             const notifySelect = document.getElementById('notifyUserSelect');
             userSelect.innerHTML = '';
@@ -485,6 +512,7 @@
                     notifySelect.appendChild(opt.cloneNode(true));
                 }
             });
+            console.log('Usuários carregados no admin:', Object.keys(users).filter(u => !isAdmin(u)));
 
             // Lista de rifas com botão excluir
             const div = document.getElementById('adminRifas');
@@ -493,7 +521,6 @@
                 let status = '';
                 if (new Date(rifa.date) < new Date()) {
                     if (!rifa.winner) {
-                        // Sortear agora e notificar
                         const numbers = rifa.participants.map(p => p.number);
                         const weights = rifa.participants.map(p => p.chance || 1);
                         rifa.winner = weightedRandom(numbers, weights);
@@ -518,6 +545,7 @@
                         <button onclick="deleteRifa(${rifa.id})">Excluir</button>
                     </div>`;
             });
+            console.log('Rifas carregadas no admin:', rifas);
         }
 
         // Excluir rifa
@@ -530,6 +558,7 @@
             localStorage.setItem('rifas', JSON.stringify(rifas));
             localStorage.setItem('users', JSON.stringify(users));
             showMessage('Rifa excluída!', 'success');
+            console.log(`Rifa ${rifaId} excluída`);
             loadAdmin();
         }
 
@@ -543,6 +572,7 @@
             notifications[user].push(`Admin: ${message}`);
             localStorage.setItem('notifications', JSON.stringify(notifications));
             showMessage(`Notificação enviada para ${user}!`, 'success');
+            console.log(`Notificação enviada para ${user}: ${message}`);
             e.target.reset();
         });
 
@@ -555,6 +585,7 @@
             users[user].coins += amount;
             localStorage.setItem('users', JSON.stringify(users));
             showMessage(`Moedas dadas a ${user}!`, 'success');
+            console.log(`Moedas dadas a ${user}: ${amount}`);
             loadAdmin();
             if (currentUser === user) {
                 document.getElementById('userCoins').textContent = users[user].coins;
@@ -598,6 +629,7 @@
             rifas.push(rifa);
             localStorage.setItem('rifas', JSON.stringify(rifas));
             showMessage('Rifa criada!', 'success');
+            console.log(`Rifa criada: ${title}`);
             e.target.reset();
             document.getElementById('hiddenOpt').classList.remove('active');
             loadAdmin();
