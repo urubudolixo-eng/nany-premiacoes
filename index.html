@@ -3,172 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nany Premiações - Criação de Rifas</title>
+    <title>Nany Premiações</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 50%, #000000 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            width: 100%;
-            max-width: 400px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #8B5CF6;
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-            animation: fadeIn 1s ease-in-out;
-            position: relative;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        h1, h2, h3 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #8B5CF6;
-            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-        }
-        input, select, button {
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #8B5CF6;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            font-size: 16px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #A78BFA;
-            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
-        }
-        button {
-            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
-            cursor: pointer;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
-        }
-        button:hover {
-            transform: scale(1.05);
-        }
-        .panel {
-            display: none;
-            animation: slideIn 0.5s ease-out;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(0); }
-        }
-        .rifa-item {
-            border: 1px solid #8B5CF6;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 8px;
-        }
-        .rifa-details {
-            display: none;
-            margin-top: 10px;
-        }
-        .rifa-details.active {
-            display: block;
-        }
-        .contact {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #A78BFA;
-            border-top: 1px solid rgba(139, 92, 246, 0.3);
-            padding-top: 15px;
-        }
-        .hidden-opt {
-            display: none;
-        }
-        .hidden-opt.active {
-            display: block;
-            animation: fadeIn 0.5s;
-        }
-        .error {
-            color: #EF4444;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .success {
-            color: #10B981;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .notification-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #8B5CF6;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: #ffffff;
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-        }
-        .notification-panel {
-            display: none;
-            position: absolute;
-            top: 60px;
-            right: 10px;
-            width: 300px;
-            max-height: 400px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #8B5CF6;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 5px 20px rgba(139, 92, 246, 0.3);
-            z-index: 1000;
-        }
-        .notification-panel.active {
-            display: block;
-            animation: fadeIn 0.5s;
-        }
-        .notification {
-            padding: 10px;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
-            margin-bottom: 10px;
-        }
-        .notification:last-child {
-            border-bottom: none;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 50%, #000000 100%); color: #fff; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 400px; background: rgba(0,0,0,0.8); border: 2px solid #8B5CF6; border-radius: 15px; padding: 40px; box-shadow: 0 10px 30px rgba(139,92,246,0.3); position: relative; }
+        h1, h2, h3 { text-align: center; margin-bottom: 20px; color: #8B5CF6; }
+        input, select, button, textarea { padding: 12px; margin-bottom: 15px; border: 1px solid #8B5CF6; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; width: 100%; }
+        button { background: linear-gradient(135deg, #8B5CF6, #A78BFA); cursor: pointer; font-weight: bold; }
+        button:hover { transform: scale(1.05); }
+        .panel { display: none; }
+        .rifa-item { border: 1px solid #8B5CF6; padding: 10px; margin: 10px 0; border-radius: 8px; }
+        .rifa-details { display: none; margin-top: 10px; }
+        .rifa-details.active { display: block; }
+        .hidden-opt { display: none; }
+        .hidden-opt.active { display: block; }
+        .error { color: #EF4444; text-align: center; }
+        .success { color: #10B981; text-align: center; }
+        .notification-btn { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; background: #8B5CF6; border: none; cursor: pointer; font-size: 20px; }
+        .notification-panel { display: none; position: absolute; top: 60px; right: 10px; width: 300px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.9); border: 2px solid #8B5CF6; border-radius: 10px; padding: 15px; z-index: 1000; }
+        .notification-panel.active { display: block; }
+        .force-update { background: #10B981; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container" id="mainContainer">
-        <!-- Login/Register Form -->
+        <!-- Auth -->
         <div id="authSection">
             <h1>Nany Premiações</h1>
             <form id="authForm">
@@ -178,25 +38,21 @@
                 </select>
                 <input type="text" id="username" placeholder="Usuário" required>
                 <input type="password" id="password" placeholder="Senha" required>
-                <button type="submit">Entrar/Registrar</button>
+                <button type="submit">Entrar</button>
             </form>
             <div id="message"></div>
         </div>
 
         <!-- User Panel -->
         <div id="userPanel" class="panel">
-            <h2>Seu Painel de Usuário</h2>
-            <p>Bem-vindo, <span id="userName"></span>! Moedas: <span id="userCoins">0</span></p>
+            <h2>Painel Usuário</h2>
+            <p><span id="userName"></span> | Moedas: <span id="userCoins">0</span></p>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanel" class="notification-panel"></div>
-            <h3>Participar de Rifa</h3>
-            <form id="selectRifaForm">
-                <select id="rifaSelect" onchange="showRifaDetails()">
-                    <option value="">Selecione uma rifa</option>
-                </select>
-                <button type="button" onclick="showRifaDetails()">Selecionar Rifa</button>
-                <div id="rifaDetails" class="rifa-details"></div>
-            </form>
+            <button class="force-update" onclick="forceUpdate()">Forçar Atualização</button>
+            <h3>Participar Rifa</h3>
+            <select id="rifaSelect" onchange="showRifaDetails()"></select>
+            <div id="rifaDetails" class="rifa-details"></div>
             <h3>Suas Rifas</h3>
             <div id="userRifas"></div>
             <button onclick="logout()">Sair</button>
@@ -205,481 +61,289 @@
         <!-- Admin Panel -->
         <div id="adminPanel" class="panel">
             <h2>Painel Admin</h2>
-            <p>Bem-vindo, Admin!</p>
             <button class="notification-btn" onclick="toggleNotifications()">🔔</button>
             <div id="notificationPanelAdmin" class="notification-panel"></div>
+            <button class="force-update" onclick="forceUpdate()">Forçar Atualização</button>
 
-            <!-- Enviar Notificação -->
             <h3>Enviar Notificação</h3>
             <form id="sendNotificationForm">
                 <select id="notifyUserSelect"></select>
-                <textarea id="notificationMessage" placeholder="Mensagem da notificação" required></textarea>
-                <button type="submit">Enviar Notificação</button>
+                <textarea id="notificationMessage" placeholder="Mensagem" required></textarea>
+                <button type="submit">Enviar</button>
             </form>
 
-            <!-- Dar Moedas -->
-            <h3>Dar Moedas via PIX</h3>
+            <h3>Dar Moedas</h3>
             <form id="giveCoinsForm">
                 <select id="userSelect"></select>
-                <input type="number" id="coinAmount" placeholder="Quantidade de moedas (R$)" min="1" required>
-                <button type="submit">Dar Moedas</button>
+                <input type="number" id="coinAmount" placeholder="R$" min="1" required>
+                <button type="submit">Dar</button>
             </form>
 
-            <!-- Criar Rifa -->
-            <h3>Criar Nova Rifa</h3>
+            <h3>Criar Rifa</h3>
             <form id="createRifaForm">
-                <input type="text" id="rifaTitle" placeholder="Título da Rifa" required>
+                <input type="text" id="rifaTitle" placeholder="Título" required>
                 <input type="date" id="rifaDate" required>
-                <input type="number" id="rifaPrice" placeholder="Preço por Número (R$)" min="0.01" step="0.01" required>
-                <input type="number" id="totalNumbers" placeholder="Total de Números" min="1" required>
-                <button type="button" onclick="toggleHiddenOpt()">Opções Avançadas (Escondido)</button>
+                <input type="number" id="rifaPrice" placeholder="Preço" min="0.01" step="0.01" required>
+                <input type="number" id="totalNumbers" placeholder="Números" min="1" required>
+                <button type="button" onclick="toggleHiddenOpt()">Opções Avançadas</button>
                 <div id="hiddenOpt" class="hidden-opt">
-                    <p>Opção escondida: Definir chances por usuário/número (ex: user1:5:2,user2:3:1)</p>
-                    <textarea id="chancesText" placeholder="Usuário:peso:número (ex: user1:5:2,user2:3:1)"></textarea>
+                    <textarea id="chancesText" placeholder="user1:5:2,user2:3:1"></textarea>
                 </div>
-                <button type="submit">Criar Rifa</button>
+                <button type="submit">Criar</button>
             </form>
 
-            <!-- Lista de Rifas -->
-            <h3>Rifas Criadas</h3>
+            <h3>Rifas</h3>
             <div id="adminRifas"></div>
-
             <button onclick="logout()">Sair</button>
         </div>
     </div>
 
-    <!-- Rodapé com Contato -->
-    <div class="contact">
-        Contato: +55 75 98868-8483 | Pix para moedas: mesmo número
-    </div>
+    <div class="contact">Contato: +55 75 98868-8483</div>
 
     <script>
-        // Configuração do GitHub (SUBSTITUA)
-        const GITHUB_TOKEN = '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'; // Substitua pelo seu Personal Access Token
-        const GITHUB_OWNER = 'urubudolixo-eng'; // Substitua pelo seu usuário do GitHub
-        const GITHUB_REPO = 'nany-premiacoes'; // Substitua pelo nome do repositório
+        // === CONFIGURAÇÃO (SUBSTITUA AQUI) ===
+        const GITHUB_TOKEN = 'SEU_NOVO_TOKEN_AQUI'; // <--- COLOQUE O NOVO TOKEN AQUI
+        const GITHUB_OWNER = 'SEU_USUARIO';
+        const GITHUB_REPO = 'nany-premiacoes';
         const DATA_PATH = 'data.json';
-        const DATA_URL = `https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/data.json`;
+        const DATA_URL = `https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/${DATA_PATH}`;
 
-        let users = {};
-        let rifas = [];
-        let notifications = {};
-        let currentUser = null;
+        let users = {}, rifas = [], notifications = {}, currentUser = null;
 
-        // Carregar dados do GitHub
+        // Verifica token
+        if (GITHUB_TOKEN === 'SEU_NOVO_TOKEN_AQUI') {
+            alert('ERRO: Substitua o GITHUB_TOKEN no código!');
+            throw new Error('Token não configurado');
+        }
+
         async function loadData() {
             try {
-                const response = await fetch(DATA_URL);
-                if (!response.ok) throw new Error('Erro ao carregar data.json');
-                const data = await response.json();
+                const res = await fetch(DATA_URL + '?t=' + Date.now());
+                if (!res.ok) throw new Error('data.json não encontrado');
+                const data = await res.json();
                 users = data.users || {};
                 rifas = data.rifas || [];
                 notifications = data.notifications || {};
-                console.log('Dados carregados:', { users: Object.keys(users), rifas });
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                users = {};
-                rifas = [];
-                notifications = {};
+                console.log('Dados carregados:', { users: Object.keys(users), rifas: rifas.length });
+
+                // Garante admin
+                if (!users['admin']) {
+                    users['admin'] = { password: 'admin', coins: 0, rifasParticipadas: [] };
+                    await saveData();
+                    console.log('Admin criado automaticamente');
+                }
+            } catch (e) {
+                console.error('Erro ao carregar:', e);
+                showMessage('Erro ao carregar dados. Verifique console.', 'error');
             }
         }
 
-        // Salvar dados no GitHub
         async function saveData() {
             try {
-                // Obter SHA do arquivo atual
-                const shaResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+                const shaRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
                     headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
                 });
-                const shaData = await shaResponse.json();
+                const shaData = await shaRes.json();
                 const sha = shaData.sha;
 
-                // Salvar novo conteúdo
                 const content = btoa(JSON.stringify({ users, rifas, notifications }, null, 2));
-                const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+                await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: `Atualizar data.json - ${new Date().toISOString()}`,
-                        content,
-                        sha
-                    })
+                    headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'update', content, sha })
                 });
-                if (!response.ok) throw new Error('Erro ao salvar data.json');
-                console.log('Dados salvos no GitHub');
-            } catch (error) {
-                console.error('Erro ao salvar dados:', error);
-                showMessage('Erro ao salvar dados! Tente novamente.', 'error');
+                console.log('Dados salvos');
+            } catch (e) {
+                console.error('Erro ao salvar:', e);
+                showMessage('Erro ao salvar! Token inválido?', 'error');
             }
         }
 
-        // Polling para atualizar dados automaticamente
-        async function startPolling() {
-            await loadData();
-            if (currentUser) {
-                if (isAdmin(currentUser)) {
-                    loadAdmin();
-                } else {
-                    loadUserData();
+        function forceUpdate() {
+            loadData().then(() => {
+                if (currentUser) {
+                    isAdmin(currentUser) ? loadAdmin() : loadUserData();
+                    loadNotifications();
                 }
-                loadNotifications();
-            }
-            setTimeout(startPolling, 10000); // Atualiza a cada 10 segundos
+                showMessage('Atualizado!', 'success');
+            });
         }
 
-        // Função weighted random para sorteio
-        function weightedRandom(numbers, weights) {
-            const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-            let random = Math.random() * totalWeight;
-            for (let i = 0; i < weights.length; i++) {
-                random -= weights[i];
-                if (random < 0) return numbers[i];
-            }
-            return numbers[numbers.length - 1];
-        }
+        setInterval(forceUpdate, 15000); // Atualiza a cada 15s
 
-        // Verificar se é admin
-        function isAdmin(user) {
-            return user === 'admin';
-        }
-
-        // Mostrar mensagens
-        function showMessage(msg, type) {
-            const div = document.getElementById('message');
-            div.innerHTML = `<div class="${type}">${msg}</div>`;
-            setTimeout(() => div.innerHTML = '', 3000);
-        }
-
-        // Esconder auth e mostrar painéis
-        function hideAuth() {
-            document.getElementById('authSection').style.display = 'none';
-        }
-        function showUserPanel() {
-            document.getElementById('userPanel').style.display = 'block';
-        }
-        function showAdminPanel() {
-            document.getElementById('adminPanel').style.display = 'block';
-        }
-
-        // Logout
-        function logout() {
-            currentUser = null;
-            document.getElementById('authSection').style.display = 'block';
-            document.getElementById('userPanel').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('authForm').reset();
-            document.getElementById('notificationPanel').classList.remove('active');
-            document.getElementById('notificationPanelAdmin').classList.remove('active');
-            console.log('Logout realizado');
-        }
-
-        // Registrar/Login
-        document.getElementById('authForm').addEventListener('submit', async (e) => {
+        // === AUTH ===
+        document.getElementById('authForm').onsubmit = async (e) => {
             e.preventDefault();
             await loadData();
             const type = document.getElementById('authType').value;
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
 
             if (type === 'register') {
-                if (users[username]) {
-                    showMessage('Usuário já existe!', 'error');
-                    return;
-                }
-                users[username] = { password, coins: 0, rifasParticipadas: [] };
+                if (users[u]) return showMessage('Usuário existe!', 'error');
+                users[u] = { password: p, coins: 0, rifasParticipadas: [] };
                 await saveData();
-                console.log(`Novo usuário registrado: ${username}`);
-                showMessage('Registrado com sucesso!', 'success');
+                showMessage('Registrado!', 'success');
             } else {
-                if (!users[username] || users[username].password !== password) {
-                    showMessage('Credenciais inválidas!', 'error');
-                    return;
-                }
+                if (!users[u] || users[u].password !== p) return showMessage('Senha errada!', 'error');
             }
+            login(u);
+        };
 
-            currentUser = username;
-            document.getElementById('userName').textContent = username;
-            document.getElementById('userCoins').textContent = users[username].coins;
-            console.log(`Usuário logado: ${currentUser}`);
+        function login(u) {
+            currentUser = u;
+            document.getElementById('userName').textContent = u;
+            document.getElementById('userCoins').textContent = users[u].coins;
             hideAuth();
-            if (isAdmin(username)) {
-                showAdminPanel();
-                loadAdmin();
-            } else {
-                showUserPanel();
-                loadUserRifas();
-                loadRifaSelect();
-            }
-            loadNotifications();
-        });
-
-        // Toggle notificações
-        function toggleNotifications() {
-            const panel = isAdmin(currentUser) ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
-            panel.classList.toggle('active');
+            isAdmin(u) ? (showAdminPanel(), loadAdmin()) : (showUserPanel(), loadUserData());
             loadNotifications();
         }
 
-        // Carregar notificações
+        function isAdmin(u) { return u === 'admin'; }
+        function hideAuth() { document.getElementById('authSection').style.display = 'none'; }
+        function showUserPanel() { document.getElementById('userPanel').style.display = 'block'; }
+        function showAdminPanel() { document.getElementById('adminPanel').style.display = 'block'; }
+        function logout() { location.reload(); }
+
+        // === NOTIFICAÇÕES ===
+        function toggleNotifications() {
+            const panel = isAdmin(currentUser) ? 'notificationPanelAdmin' : 'notificationPanel';
+            document.getElementById(panel).classList.toggle('active');
+            loadNotifications();
+        }
         function loadNotifications() {
             const panel = isAdmin(currentUser) ? document.getElementById('notificationPanelAdmin') : document.getElementById('notificationPanel');
             panel.innerHTML = '<h3>Notificações</h3>';
-            const userNotifications = notifications[currentUser] || [];
-            if (userNotifications.length === 0) {
-                panel.innerHTML += '<p>Sem notificações.</p>';
-            } else {
-                userNotifications.forEach(notif => {
-                    panel.innerHTML += `<div class="notification">${notif}</div>`;
-                });
-            }
-            console.log(`Notificações carregadas para ${currentUser}:`, userNotifications);
+            (notifications[currentUser] || []).forEach(n => panel.innerHTML += `<div class="notification">${n}</div>`);
         }
 
-        // Carregar opções de rifas no select
+        // === USUÁRIO ===
         function loadRifaSelect() {
-            const select = document.getElementById('rifaSelect');
-            select.innerHTML = '<option value="">Selecione uma rifa</option>';
-            rifas.forEach(rifa => {
-                if (new Date(rifa.date) > new Date() && !users[currentUser]?.rifasParticipadas?.some(p => p.rifaId === rifa.id)) {
-                    const option = document.createElement('option');
-                    option.value = rifa.id;
-                    option.textContent = `${rifa.title} - R$${rifa.price} - ${rifa.date}`;
-                    select.appendChild(option);
+            const s = document.getElementById('rifaSelect');
+            s.innerHTML = '<option value="">Selecione</option>';
+            rifas.forEach(r => {
+                if (new Date(r.date) > new Date() && !users[currentUser].rifasParticipadas.some(p => p.rifaId === r.id)) {
+                    const o = document.createElement('option');
+                    o.value = r.id; o.textContent = `${r.title} - R$${r.price}`;
+                    s.appendChild(o);
                 }
             });
-            console.log(`Rifas carregadas para ${currentUser}:`, rifas.filter(r => new Date(r.date) > new Date()));
         }
-
-        // Mostrar detalhes da rifa selecionada
         function showRifaDetails() {
-            const rifaId = document.getElementById('rifaSelect').value;
-            const detailsDiv = document.getElementById('rifaDetails');
-            detailsDiv.innerHTML = '';
-            if (!rifaId) {
-                detailsDiv.classList.remove('active');
-                return;
-            }
-            const rifa = rifas.find(r => r.id == rifaId);
-            if (!rifa) {
-                console.log(`Rifa ${rifaId} não encontrada!`);
-                return;
-            }
-            const takenNumbers = rifa.participants.map(p => p.number);
-            const availableNumbers = Array.from({ length: rifa.totalNumbers }, (_, i) => i + 1).filter(n => !takenNumbers.includes(n));
-            detailsDiv.innerHTML = `
-                <p>Números disponíveis: ${availableNumbers.length}/${rifa.totalNumbers}</p>
-                <select id="numberSelect_${rifaId}">
-                    <option value="">Escolha um número</option>
-                    ${availableNumbers.map(n => `<option value="${n}">${n}</option>`).join('')}
-                </select>
-                <button onclick="participateRifa(${rifaId})">Entrar na Rifa</button>
-            `;
-            detailsDiv.classList.add('active');
-            console.log(`Detalhes da rifa ${rifaId} exibidos: ${availableNumbers.length} números disponíveis`);
+            const id = document.getElementById('rifaSelect').value;
+            const d = document.getElementById('rifaDetails');
+            d.innerHTML = ''; d.classList.remove('active');
+            if (!id) return;
+            const r = rifas.find(x => x.id == id);
+            const taken = r.participants.map(p => p.number);
+            const avail = Array.from({length: r.totalNumbers}, (_,i) => i+1).filter(n => !taken.includes(n));
+            d.innerHTML = `<p>Disponíveis: ${avail.length}</p><select id="num_${id}"><option value="">Número</option>${avail.map(n=>`<option value="${n}">${n}</option>`).join('')}</select><button onclick="participateRifa(${id})">Entrar</button>`;
+            d.classList.add('active');
         }
-
-        // Participar de rifa
-        async function participateRifa(rifaId) {
+        async function participateRifa(id) {
             await loadData();
-            const rifa = rifas.find(r => r.id == rifaId);
-            if (!rifa) {
-                showMessage('Rifa não encontrada!', 'error');
-                console.log(`Erro: Rifa ${rifaId} não encontrada`);
-                return;
-            }
-            const number = parseInt(document.getElementById(`numberSelect_${rifaId}`).value);
-            if (!number) {
-                showMessage('Escolha um número!', 'error');
-                console.log('Erro: Nenhum número selecionado');
-                return;
-            }
-            if (rifa.participants.some(p => p.number === number)) {
-                showMessage('Número já escolhido!', 'error');
-                console.log(`Erro: Número ${number} já escolhido na rifa ${rifaId}`);
-                return;
-            }
-            if (users[currentUser].coins < rifa.price) {
-                showMessage('Moedas insuficientes! Faça um PIX para +55 75 98868-8483.', 'error');
-                console.log(`Erro: Moedas insuficientes para ${currentUser} (${users[currentUser].coins} < ${rifa.price})`);
-                return;
-            }
-            users[currentUser].coins -= rifa.price;
-            users[currentUser].rifasParticipadas.push({ rifaId, number });
-            rifa.participants.push({ user: currentUser, number, chance: rifa.chances?.[`${currentUser}:${number}`] || 1 });
+            const r = rifas.find(x => x.id == id);
+            const num = +document.getElementById(`num_${id}`).value;
+            if (!num || r.participants.some(p => p.number === num)) return showMessage('Número inválido!', 'error');
+            if (users[currentUser].coins < r.price) return showMessage('Sem moedas!', 'error');
+            users[currentUser].coins -= r.price;
+            users[currentUser].rifasParticipadas.push({ rifaId: id, number: num });
+            r.participants.push({ user: currentUser, number: num, chance: 1 });
             await saveData();
             document.getElementById('userCoins').textContent = users[currentUser].coins;
-            showMessage(`Participação confirmada! Número ${number}`, 'success');
-            console.log(`Participação confirmada: ${currentUser} na rifa ${rifaId}, número ${number}`);
-            loadUserRifas();
-            loadRifaSelect();
-            document.getElementById('rifaDetails').classList.remove('active');
+            loadUserRifas(); loadRifaSelect();
         }
-
-        // Carregar rifas do user
         function loadUserRifas() {
-            const userRifasDiv = document.getElementById('userRifas');
-            userRifasDiv.innerHTML = '';
-            const user = users[currentUser];
-            rifas.forEach(rifa => {
-                if (user.rifasParticipadas.some(p => p.rifaId === rifa.id)) {
-                    const status = new Date(rifa.date) < new Date() ? (rifa.winner ? `Ganhador: ${rifa.winner}` : 'Sorteando...') : 'Pendente';
-                    const number = user.rifasParticipadas.find(p => p.rifaId === rifa.id).number;
-                    userRifasDiv.innerHTML += `<p>${rifa.title} - Número: ${number} - ${status}</p>`;
-                }
+            const div = document.getElementById('userRifas');
+            div.innerHTML = '';
+            users[currentUser].rifasParticipadas.forEach(p => {
+                const r = rifas.find(x => x.id === p.rifaId);
+                if (r) div.innerHTML += `<p>${r.title} - Nº ${p.number}</p>`;
             });
-            console.log(`Rifas participadas por ${currentUser}:`, user.rifasParticipadas);
         }
-
-        // Função para carregar dados do user
         async function loadUserData() {
             await loadData();
-            loadRifaSelect();
-            loadUserRifas();
+            loadRifaSelect(); loadUserRifas();
             document.getElementById('userCoins').textContent = users[currentUser].coins;
-            console.log(`Dados do usuário ${currentUser} atualizados`);
         }
 
-        // Carregar admin
+        // === ADMIN ===
         async function loadAdmin() {
             await loadData();
-            const userSelect = document.getElementById('userSelect');
-            const notifySelect = document.getElementById('notifyUserSelect');
-            userSelect.innerHTML = '';
-            notifySelect.innerHTML = '';
-            Object.keys(users).forEach(user => {
-                if (!isAdmin(user)) {
-                    const opt = document.createElement('option');
-                    opt.value = user;
-                    opt.textContent = `${user} (${users[user].coins} moedas)`;
-                    userSelect.appendChild(opt);
-                    notifySelect.appendChild(opt.cloneNode(true));
-                }
+            ['userSelect', 'notifyUserSelect'].forEach(id => {
+                const s = document.getElementById(id);
+                s.innerHTML = '';
+                Object.keys(users).filter(u => u !== 'admin').forEach(u => {
+                    const o = document.createElement('option');
+                    o.value = u; o.textContent = `${u} (${users[u].coins})`;
+                    s.appendChild(o);
+                });
             });
-            console.log('Usuários carregados no admin:', Object.keys(users).filter(u => !isAdmin(u)));
 
             const div = document.getElementById('adminRifas');
             div.innerHTML = '';
-            rifas.forEach(rifa => {
-                let status = '';
-                if (new Date(rifa.date) < new Date()) {
-                    if (!rifa.winner) {
-                        const numbers = rifa.participants.map(p => p.number);
-                        const weights = rifa.participants.map(p => p.chance || 1);
-                        rifa.winner = weightedRandom(numbers, weights);
-                        const winnerUser = rifa.participants.find(p => p.number === rifa.winner)?.user;
-                        rifa.participants.forEach(p => {
-                            notifications[p.user] = notifications[p.user] || [];
-                            notifications[p.user].push(`Rifa "${rifa.title}" sorteada! ${p.number === rifa.winner ? 'Você ganhou!' : `Ganhador: ${winnerUser} (Número ${rifa.winner})`}`);
-                        });
-                        saveData();
-                        status = `Ganhador: ${winnerUser} (Número ${rifa.winner})`;
-                    } else {
-                        const winnerUser = rifa.participants.find(p => p.number === rifa.winner)?.user;
-                        status = `Ganhador: ${winnerUser} (Número ${rifa.winner})`;
-                    }
-                } else {
-                    status = 'Pendente';
-                }
-                div.innerHTML += `
-                    <div class="rifa-item">
-                        ${rifa.title} - Data: ${rifa.date} - Preço: R$${rifa.price} - ${status}
-                        <button onclick="deleteRifa(${rifa.id})">Excluir</button>
-                    </div>`;
+            rifas.forEach(r => {
+                const status = new Date(r.date) < new Date() ? (r.winner ? `Ganhador: ${r.winner}` : 'Sorteando...') : 'Ativa';
+                div.innerHTML += `<div class="rifa-item">${r.title} - ${status} <button onclick="deleteRifa(${r.id})">Excluir</button></div>`;
             });
-            console.log('Rifas carregadas no admin:', rifas);
         }
-
-        // Excluir rifa
-        async function deleteRifa(rifaId) {
-            await loadData();
-            rifas = rifas.filter(r => r.id !== rifaId);
-            Object.keys(users).forEach(u => {
-                users[u].rifasParticipadas = users[u].rifasParticipadas.filter(p => p.rifaId !== rifaId);
-            });
+        async function deleteRifa(id) {
+            rifas = rifas.filter(r => r.id !== id);
             await saveData();
-            showMessage('Rifa excluída!', 'success');
-            console.log(`Rifa ${rifaId} excluída`);
             loadAdmin();
         }
-
-        // Enviar notificação personalizada
-        document.getElementById('sendNotificationForm').addEventListener('submit', async (e) => {
+        document.getElementById('sendNotificationForm').onsubmit = async (e) => {
             e.preventDefault();
-            await loadData();
-            const user = document.getElementById('notifyUserSelect').value;
-            const message = document.getElementById('notificationMessage').value;
-            notifications[user] = notifications[user] || [];
-            notifications[user].push(`Admin: ${message}`);
+            const u = document.getElementById('notifyUserSelect').value;
+            const m = document.getElementById('notificationMessage').value;
+            notifications[u] = notifications[u] || [];
+            notifications[u].push(`Admin: ${m}`);
             await saveData();
-            showMessage(`Notificação enviada para ${user}!`, 'success');
-            console.log(`Notificação enviada para ${user}: ${message}`);
             e.target.reset();
-        });
-
-        // Dar moedas
-        document.getElementById('giveCoinsForm').addEventListener('submit', async (e) => {
+        };
+        document.getElementById('giveCoinsForm').onsubmit = async (e) => {
             e.preventDefault();
-            await loadData();
-            const user = document.getElementById('userSelect').value;
-            const amount = parseFloat(document.getElementById('coinAmount').value);
-            users[user].coins += amount;
+            const u = document.getElementById('userSelect').value;
+            const a = +document.getElementById('coinAmount').value;
+            users[u].coins += a;
             await saveData();
-            showMessage(`Moedas dadas a ${user}!`, 'success');
-            console.log(`Moedas dadas a ${user}: ${amount}`);
             loadAdmin();
-            if (currentUser === user) {
-                document.getElementById('userCoins').textContent = users[user].coins;
-            }
-            e.target.reset();
-        });
-
-        // Toggle opção escondida
-        function toggleHiddenOpt() {
-            const hidden = document.getElementById('hiddenOpt');
-            hidden.classList.toggle('active');
-        }
-
-        // Criar rifa
-        document.getElementById('createRifaForm').addEventListener('submit', async (e) => {
+        };
+        document.getElementById('createRifaForm').onsubmit = async (e) => {
             e.preventDefault();
-            await loadData();
-            const title = document.getElementById('rifaTitle').value;
-            const date = document.getElementById('rifaDate').value;
-            const price = parseFloat(document.getElementById('rifaPrice').value);
-            const totalNums = parseInt(document.getElementById('totalNumbers').value);
-            let chances = {};
-            const chancesText = document.getElementById('chancesText').value;
-            if (chancesText) {
-                chancesText.split(',').forEach(pair => {
-                    const [user, weight, number] = pair.split(':').map(s => s.trim());
-                    chances[`${user}:${number}`] = parseInt(weight);
-                });
-            }
-
-            const rifa = {
+            const r = {
                 id: Date.now(),
-                title,
-                date,
-                price,
-                totalNumbers: totalNums,
+                title: document.getElementById('rifaTitle').value,
+                date: document.getElementById('rifaDate').value,
+                price: +document.getElementById('rifaPrice').value,
+                totalNumbers: +document.getElementById('totalNumbers').value,
                 participants: [],
                 winner: null,
-                chances
+                chances: {}
             };
-            rifas.push(rifa);
+            rifas.push(r);
             await saveData();
-            showMessage('Rifa criada!', 'success');
-            console.log(`Rifa criada: ${title}`);
             e.target.reset();
-            document.getElementById('hiddenOpt').classList.remove('active');
             loadAdmin();
-        });
+        };
+        function toggleHiddenOpt() { document.getElementById('hiddenOpt').classList.toggle('active'); }
 
-        // Inicializar
-        startPolling();
+        function showMessage(msg, type) {
+            const m = document.getElementById('message');
+            m.innerHTML = `<div class="${type}">${msg}</div>`;
+            setTimeout(() => m.innerHTML = '', 3000);
+        }
+
+        // Inicia
+        loadData().then(() => {
+            if (localStorage.getItem('autoLogin')) {
+                const u = localStorage.getItem('autoLogin');
+                if (users[u]) login(u);
+            }
+        });
+        setInterval(() => {
+            if (currentUser) forceUpdate();
+        }, 15000);
     </script>
 </body>
 </html>
